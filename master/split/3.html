@@ -1,0 +1,228 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <style>
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } /* Alert */
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #c4a000; } /* Attribute */
+code span.bn { color: #0000cf; } /* BaseN */
+code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4e9a06; } /* Char */
+code span.cn { color: #000000; } /* Constant */
+code span.co { color: #8f5902; font-style: italic; } /* Comment */
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code span.dt { color: #204a87; } /* DataType */
+code span.dv { color: #0000cf; } /* DecVal */
+code span.er { color: #a40000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #0000cf; } /* Float */
+code span.fu { color: #000000; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code span.ot { color: #8f5902; } /* Other */
+code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code span.sc { color: #000000; } /* SpecialChar */
+code span.ss { color: #4e9a06; } /* SpecialString */
+code span.st { color: #4e9a06; } /* String */
+code span.va { color: #000000; } /* Variable */
+code span.vs { color: #4e9a06; } /* VerbatimString */
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+  
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="2.html">2 Getting started</a>. Next: <a href="4.html">4 Introducing futures and continuations</a>.</div><h1 id="threads-and-memory"><span class="header-section-number">3</span> Threads and memory</h1>
+<h2 id="seastar-threads"><span class="header-section-number">3.1</span> Seastar threads</h2>
+<p>As explained in the introduction, Seastar-based programs run a single thread on each CPU. Each of these threads runs its own event loop, known as the <em>engine</em> in Seastar nomenclature. By default, the Seastar application will take over all the available cores, starting one thread per core. We can see this with the following program, printing <code>seastar::smp::count</code> which is the number of started threads:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a href="#cb7-1"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/app-template.hh&gt;</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/reactor.hh&gt;</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4"></a></span>
+<span id="cb7-5"><a href="#cb7-5"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>** argv) {</span>
+<span id="cb7-6"><a href="#cb7-6"></a>    seastar::app_template app;</span>
+<span id="cb7-7"><a href="#cb7-7"></a>    app.run(argc, argv, [] {</span>
+<span id="cb7-8"><a href="#cb7-8"></a>            <span class="bu">std::</span>cout &lt;&lt; seastar::smp::count &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb7-9"><a href="#cb7-9"></a>            <span class="cf">return</span> seastar::make_ready_future&lt;&gt;();</span>
+<span id="cb7-10"><a href="#cb7-10"></a>    });</span>
+<span id="cb7-11"><a href="#cb7-11"></a>}</span></code></pre></div>
+<p>On a machine with 4 hardware threads (two cores, and hyperthreading enabled), Seastar will by default start 4 engine threads:</p>
+<pre class="none"><code>$ ./a.out
+4</code></pre>
+<p>Each of these 4 engine threads will be pinned (a la <strong>taskset(1)</strong>) to a different hardware thread. Note how, as we mentioned above, the app&#8217;s initialization function is run only on one thread, so we see the ouput &#8220;4&#8221; only once. Later in the tutorial we&#8217;ll see how to make use of all threads.</p>
+<p>The user can pass a command line parameter, <code>-c</code>, to tell Seastar to start fewer threads than the available number of hardware threads. For example, to start Seastar on only 2 threads, the user can do:</p>
+<pre class="none"><code>$ ./a.out -c2
+2</code></pre>
+<p>When the machine is configured as in the example above - two cores with two hyperthreads on each - and only two threads are requested, Seastar ensures that each thread is pinned to a different core, and we don&#8217;t get the two threads competing as hyperthreads of the same core (which would, of course, damage performance).</p>
+<p>We cannot start more threads than the number of hardware threads, as allowing this will be grossly inefficient. Trying it will result in an error:</p>
+<pre class="none"><code>$ ./a.out -c5
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  insufficient processing units
+abort (core dumped)</code></pre>
+<p>The error is an exception thrown from app.run, which we did not catch, leading to this ugly uncaught-exception crash. It is better to catch this sort of startup exceptions, and exit gracefully without a core dump:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a href="#cb11-1"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/app-template.hh&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/reactor.hh&gt;</span></span>
+<span id="cb11-3"><a href="#cb11-3"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb11-4"><a href="#cb11-4"></a><span class="pp">#include </span><span class="im">&lt;stdexcept&gt;</span></span>
+<span id="cb11-5"><a href="#cb11-5"></a></span>
+<span id="cb11-6"><a href="#cb11-6"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>** argv) {</span>
+<span id="cb11-7"><a href="#cb11-7"></a>    seastar::app_template app;</span>
+<span id="cb11-8"><a href="#cb11-8"></a>    <span class="cf">try</span> {</span>
+<span id="cb11-9"><a href="#cb11-9"></a>        app.run(argc, argv, [] {</span>
+<span id="cb11-10"><a href="#cb11-10"></a>            <span class="bu">std::</span>cout &lt;&lt; seastar::smp::count &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb11-11"><a href="#cb11-11"></a>            <span class="cf">return</span> seastar::make_ready_future&lt;&gt;();</span>
+<span id="cb11-12"><a href="#cb11-12"></a>        });</span>
+<span id="cb11-13"><a href="#cb11-13"></a>    } <span class="cf">catch</span>(...) {</span>
+<span id="cb11-14"><a href="#cb11-14"></a>        <span class="bu">std::</span>cerr &lt;&lt; <span class="st">"Failed to start application: "</span></span>
+<span id="cb11-15"><a href="#cb11-15"></a>                  &lt;&lt; <span class="bu">std::</span>current_exception() &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb11-16"><a href="#cb11-16"></a>        <span class="cf">return</span> <span class="dv">1</span>;</span>
+<span id="cb11-17"><a href="#cb11-17"></a>    }</span>
+<span id="cb11-18"><a href="#cb11-18"></a>    <span class="cf">return</span> <span class="dv">0</span>;</span>
+<span id="cb11-19"><a href="#cb11-19"></a>}</span></code></pre></div>
+<pre class="none"><code>$ ./a.out -c5
+Couldn't start application: std::runtime_error (insufficient processing units)</code></pre>
+<p>Note that catching the exceptions this way does <strong>not</strong> catch exceptions thrown in the application&#8217;s actual asynchronous code. We will discuss these later in this tutorial.</p>
+<h2 id="seastar-memory"><span class="header-section-number">3.2</span> Seastar memory</h2>
+<p>As explained in the introduction, Seastar applications shard their memory. Each thread is preallocated with a large piece of memory (on the same NUMA node it is running on), and uses only that memory for its allocations (such as <code>malloc()</code> or <code>new</code>).</p>
+<p>By default, the machine&#8217;s <strong>entire memory</strong> except a certain reservation left for the OS (defaulting to the maximum of 1.5G or 7% of total memory) is pre-allocated for the application in this manner. This default can be changed by <em>either</em> changing the amount reserved for the OS (not used by Seastar) with the <code>--reserve-memory</code> option, or by explicitly giving the amount of memory given to the Seastar application, with the <code>-m</code> option. This amount of memory can be in bytes, or using the units &#8220;k&#8221;, &#8220;M&#8221;, &#8220;G&#8221; or &#8220;T&#8221;. These units use the power-of-two values: &#8220;M&#8221; is a <strong>mebibyte</strong>, 2^20 (=1,048,576) bytes, not a <strong>megabyte</strong> (10^6 or 1,000,000 bytes).</p>
+<p>Trying to give Seastar more memory than physical memory immediately fails:</p>
+<pre class="none"><code>$ ./a.out -m10T
+Couldn't start application: std::runtime_error (insufficient physical memory)</code></pre>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="2.html">2 Getting started</a>. Next: <a href="4.html">4 Introducing futures and continuations</a>.</div></body></html>

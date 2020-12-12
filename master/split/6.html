@@ -1,0 +1,250 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <style>
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } /* Alert */
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #c4a000; } /* Attribute */
+code span.bn { color: #0000cf; } /* BaseN */
+code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4e9a06; } /* Char */
+code span.cn { color: #000000; } /* Constant */
+code span.co { color: #8f5902; font-style: italic; } /* Comment */
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code span.dt { color: #204a87; } /* DataType */
+code span.dv { color: #0000cf; } /* DecVal */
+code span.er { color: #a40000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #0000cf; } /* Float */
+code span.fu { color: #000000; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code span.ot { color: #8f5902; } /* Other */
+code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code span.sc { color: #000000; } /* SpecialChar */
+code span.ss { color: #4e9a06; } /* SpecialString */
+code span.st { color: #4e9a06; } /* String */
+code span.va { color: #000000; } /* Variable */
+code span.vs { color: #4e9a06; } /* VerbatimString */
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+  
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="5.html">5 Continuations</a>. Next: <a href="7.html">7 Lifetime management</a>.</div><h1 id="handling-exceptions"><span class="header-section-number">6</span> Handling exceptions</h1>
+<p>An exception thrown in a continuation is implicitly captured by the system and stored in the future. A future that stores such an exception is similar to a ready future in that it can cause its continuation to be launched, but it does not contain a value &#8211; only the exception.</p>
+<p>Calling <code>.then()</code> on such a future skips over the continuation, and transfers the exception for the input future (the object on which <code>.then()</code> is called) to the output future (<code>.then()</code>&#8217;s return value).</p>
+<p>This default handling parallels normal exception behavior &#8211; if an exception is thrown in straight-line code, all following lines are skipped:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1"></a>line1();</span>
+<span id="cb29-2"><a href="#cb29-2"></a>line2(); <span class="co">// throws!</span></span>
+<span id="cb29-3"><a href="#cb29-3"></a>line3(); <span class="co">// skipped</span></span></code></pre></div>
+<p>is similar to</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1"></a><span class="cf">return</span> line1().then([] {</span>
+<span id="cb30-2"><a href="#cb30-2"></a>    <span class="cf">return</span> line2(); <span class="co">// throws!</span></span>
+<span id="cb30-3"><a href="#cb30-3"></a>}).then([] {</span>
+<span id="cb30-4"><a href="#cb30-4"></a>    <span class="cf">return</span> line3(); <span class="co">// skipped</span></span>
+<span id="cb30-5"><a href="#cb30-5"></a>});</span></code></pre></div>
+<p>Usually, aborting the current chain of operations and returning an exception is what&#8217;s needed, but sometimes more fine-grained control is required. There are several primitives for handling exceptions:</p>
+<ol type="1">
+<li><code>.then_wrapped()</code>: instead of passing the values carried by the future into the continuation, <code>.then_wrapped()</code> passes the input future to the continuation. The future is guaranteed to be in ready state, so the continuation can examine whether it contains a value or an exception, and take appropriate action.</li>
+<li><code>.finally()</code>: similar to a Java finally block, a <code>.finally()</code> continuation is executed whether or not its input future carries an exception or not. The result of the finally continuation is its input future, so <code>.finally()</code> can be used to insert code in a flow that is executed unconditionally, but otherwise does not alter the flow.</li>
+</ol>
+<p>TODO: give example code for the above. Also mention handle_exception - although perhaps delay that to a later chapter?</p>
+<h2 id="exceptions-vs.-exceptional-futures"><span class="header-section-number">6.1</span> Exceptions vs.&#160;exceptional futures</h2>
+<p>An asynchronous function can fail in one of two ways: It can fail immediately, by throwing an exception, or it can return a future which will eventually fail (resolve to an exception). These two modes of failure appear similar to the uninitiated, but behave differently when attempting to handle exceptions using <code>finally()</code>, <code>handle_exception()</code>, or <code>then_wrapped()</code>. For example, consider the code:</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/future.hh&gt;</span></span>
+<span id="cb31-2"><a href="#cb31-2"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb31-3"><a href="#cb31-3"></a><span class="pp">#include </span><span class="im">&lt;exception&gt;</span></span>
+<span id="cb31-4"><a href="#cb31-4"></a></span>
+<span id="cb31-5"><a href="#cb31-5"></a><span class="kw">class</span> my_exception : <span class="kw">public</span> <span class="bu">std::</span>exception {</span>
+<span id="cb31-6"><a href="#cb31-6"></a>    <span class="kw">virtual</span> <span class="at">const</span> <span class="dt">char</span>* what() <span class="at">const</span> <span class="kw">noexcept</span> <span class="kw">override</span> { <span class="cf">return</span> <span class="st">"my exception"</span>; }</span>
+<span id="cb31-7"><a href="#cb31-7"></a>};</span>
+<span id="cb31-8"><a href="#cb31-8"></a></span>
+<span id="cb31-9"><a href="#cb31-9"></a>seastar::future&lt;&gt; fail() {</span>
+<span id="cb31-10"><a href="#cb31-10"></a>    <span class="cf">return</span> seastar::make_exception_future&lt;&gt;(my_exception());</span>
+<span id="cb31-11"><a href="#cb31-11"></a>}</span>
+<span id="cb31-12"><a href="#cb31-12"></a></span>
+<span id="cb31-13"><a href="#cb31-13"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb31-14"><a href="#cb31-14"></a>    <span class="cf">return</span> fail().finally([] {</span>
+<span id="cb31-15"><a href="#cb31-15"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">"cleaning up</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb31-16"><a href="#cb31-16"></a>    });</span>
+<span id="cb31-17"><a href="#cb31-17"></a>}</span></code></pre></div>
+<p>This code will, as expected, print the &#8220;cleaning up&#8221; message - the asynchronous function <code>fail()</code> returns a future which resolves to a failure, and the <code>finally()</code> continuation is run despite this failure, as expected.</p>
+<p>Now consider that in the above example we had a different definition for <code>fail()</code>:</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb32-1"><a href="#cb32-1"></a>seastar::future&lt;&gt; fail() {</span>
+<span id="cb32-2"><a href="#cb32-2"></a>    <span class="cf">throw</span> my_exception();</span>
+<span id="cb32-3"><a href="#cb32-3"></a>}</span></code></pre></div>
+<p>Here, <code>fail()</code> does not return a failing future. Rather, it fails to return a future at all! The exception it throws stops the entire function <code>f()</code>, and the <code>finally()</code> continuation does not not get attached to the future (which was never returned), and will never run. The &#8220;cleaning up&#8221; message is not printed now.</p>
+<p>We recommend that to reduce the chance for such errors, asynchronous functions should always return a failed future rather than throw an actual exception. If the asynchronous function calls another function <em>before</em> returning a future, and that second function might throw, it should use <code>try</code>/<code>catch</code> to catch the exception and convert it into a failed future:</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1"></a><span class="dt">void</span> inner() {</span>
+<span id="cb33-2"><a href="#cb33-2"></a>    <span class="cf">throw</span> my_exception();</span>
+<span id="cb33-3"><a href="#cb33-3"></a>}</span>
+<span id="cb33-4"><a href="#cb33-4"></a>seastar::future&lt;&gt; fail() {</span>
+<span id="cb33-5"><a href="#cb33-5"></a>    <span class="cf">try</span> {</span>
+<span id="cb33-6"><a href="#cb33-6"></a>        inner();</span>
+<span id="cb33-7"><a href="#cb33-7"></a>    } <span class="cf">catch</span>(...) {</span>
+<span id="cb33-8"><a href="#cb33-8"></a>        <span class="cf">return</span> seastar::make_exception_future(<span class="bu">std::</span>current_exception());</span>
+<span id="cb33-9"><a href="#cb33-9"></a>    }</span>
+<span id="cb33-10"><a href="#cb33-10"></a>    <span class="cf">return</span> seastar::make_ready_future&lt;&gt;();</span>
+<span id="cb33-11"><a href="#cb33-11"></a>}</span></code></pre></div>
+<p>Here, <code>fail()</code> catches the exception thrown by <code>inner()</code>, whatever it might be, and returns a failed future with that failure. Written this way, the <code>finally()</code> continuation will be reached, and the &#8220;cleaning up&#8221; message printed.</p>
+<blockquote>
+<p>Despite this recommendation that asynchronous functions avoid throwing, some asynchronous functions do throw exceptions in addition to returning exceptional futures. A common example are functions which allocate memory and throw <code>std::bad_alloc</code> when running out of memory, instead of returning a future. The <code>future&lt;&gt; seastar::semaphore::wait()</code> method is one such function: It returns a future which may be exceptional if the semaphore was <code>broken()</code> or the wait timed out, but may also <em>throw</em> an exception when failing to allocate memory it needs to hold the list of waiters. Therefore, unless a function &#8212; including asynchronous functions &#8212; is explicitly tagged &#8220;<code>noexcept</code>&#8221;, the application should be prepared to handle exceptions thrown from it. In modern C++, code usually uses RAII to be exception-safe without sprinkling it with <code>try</code>/<code>catch</code>. <code>seastar::defer()</code> is a RAII-based idiom that ensures that some cleanup code is run even if an exception is thrown.</p>
+</blockquote>
+<p>Seastar has a convenient generic function, <code>futurize_invoke()</code>, which can be useful here. <code>futurize_invoke(func, args...)</code> runs a function which may return either a future value or an immediate value, and in both cases convert the result into a future value. <code>futurize_invoke()</code> also converts an immediate exception thrown by the function, if any, into a failed future, just like we did above. So using <code>futurize_invoke()</code> we can make the above example work even if <code>fail()</code> did throw exceptions:</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb34-1"><a href="#cb34-1"></a>seastar::future&lt;&gt; fail() {</span>
+<span id="cb34-2"><a href="#cb34-2"></a>    <span class="cf">throw</span> my_exception();</span>
+<span id="cb34-3"><a href="#cb34-3"></a>}</span>
+<span id="cb34-4"><a href="#cb34-4"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb34-5"><a href="#cb34-5"></a>    <span class="cf">return</span> seastar::futurize_invoke(fail).finally([] {</span>
+<span id="cb34-6"><a href="#cb34-6"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">"cleaning up</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb34-7"><a href="#cb34-7"></a>    });</span>
+<span id="cb34-8"><a href="#cb34-8"></a>}</span></code></pre></div>
+<p>Note that most of this discussion becomes moot if the risk of exception is inside a <em>continuation</em>. Consider the following code:</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb35-1"><a href="#cb35-1"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb35-2"><a href="#cb35-2"></a>    <span class="cf">return</span> seastar::sleep(<span class="dv">1</span><span class="bu">s</span>).then([] {</span>
+<span id="cb35-3"><a href="#cb35-3"></a>        <span class="cf">throw</span> my_exception();</span>
+<span id="cb35-4"><a href="#cb35-4"></a>    }).finally([] {</span>
+<span id="cb35-5"><a href="#cb35-5"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">"cleaning up</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb35-6"><a href="#cb35-6"></a>    });</span>
+<span id="cb35-7"><a href="#cb35-7"></a>}</span></code></pre></div>
+<p>Here, the lambda function of the first continuation does throw an exception instead of returning a failed future. However, we do <em>not</em> have the same problem as before, which only happened because an asynchronous function threw an exception <em>before</em> returning a valid future. Here, <code>f()</code> does return a valid future immediately - the failure will only be known later, after <code>sleep()</code> resolves. The message in <code>finally()</code> will be printed. The methods which attach continuations (such as <code>then()</code> and <code>finally()</code>) run the continuation the same way, so continuation functions may return immediate values or, in this case, throw an immediate exception, and still work properly.</p>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="5.html">5 Continuations</a>. Next: <a href="7.html">7 Lifetime management</a>.</div></body></html>
