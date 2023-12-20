@@ -1,0 +1,347 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #c4a000; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #000000; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #000000; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #000000; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="4.html">4 Introducing futures and continuations</a>. Next: <a href="6.html">6 Continuations</a>.</div><h1 data-number="5" id="coroutines"><span class="header-section-number">5</span> Coroutines</h1>
+<p>Note: coroutines require C++20 and a supporting compiler. Clang 10 and above is known to work.</p>
+<p>The simplest way to write efficient asynchronous code with Seastar is to use coroutines. Coroutines don&#8217;t share most of the pitfalls of traditional continuations (below), and so are the preferred way to write new code.</p>
+<p>A coroutine is a function that returns a <code>seastar::future&lt;T&gt;</code> and uses the <code>co_await</code> or <code>co_return</code> keywords. Coroutines are invisible to their callers and callees; they integrate with traditional Seastar code in either role. If you are not familiar with C++ coroutines, you may want to consult <a href="https://medium.com/pranayaggarwal25/coroutines-in-cpp-15afdf88e17e">A more general introduction to C++ coroutines</a>; this section focuses on how coroutines integrate with Seastar.</p>
+<p>Here&#8217;s an example of a simple Seastar coroutine:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/coroutine.hh&gt;</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; read();</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true"></a>seastar::future&lt;&gt; write(<span class="dt">int</span> n);</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true"></a></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; slow_fetch_and_increment() {</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true"></a>    <span class="kw">auto</span> n = <span class="kw">co_await</span> read();     <span class="co">// #1</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true"></a>    <span class="kw">co_await</span> seastar::sleep(<span class="dv">1</span><span class="bu">s</span>);  <span class="co">// #2</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true"></a>    <span class="kw">auto</span> new_n = n + <span class="dv">1</span>;           <span class="co">// #3</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true"></a>    <span class="kw">co_await</span> write(new_n);        <span class="co">// #4</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true"></a>    <span class="kw">co_return</span> n;                  <span class="co">// #5</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true"></a>}</span></code></pre></div>
+<p>In #1, we call the <code>read()</code> function, which returns a future. The <code>co_await</code> keyword instructs Seastar to inspect the returned future. If the future is ready, then the value (an <code>int</code>) is extracted from the future and assigned to <code>n</code>. If the future is not ready, the coroutine arranges for itself to be called when the future becomes ready, and control is returned to Seastar. Once the future becomes ready, the coroutine is awakened and the value is extracted from the future and assigned to <code>n</code>.</p>
+<p>In #2, we call <code>seastar::sleep()</code> and wait for the returned future to become ready, which it will in a second. This demonstrates that <code>n</code> is preserved across <code>co_await</code> calls, and the author of the coroutine need not arrange for storage for coroutine local variables.</p>
+<p>Line #3 demonstrates the addition operation, with which the reader is assumed to be familiar.</p>
+<p>In #4, we call a function that returns a <code>seastar::future&lt;&gt;</code>. In this case, the future carries no value, and so no value is extracted and assigned.</p>
+<p>Line #5 demonstrates returning a value. The integer value is used to satisfy the <code>future&lt;int&gt;</code> that our caller got when calling the coroutine.</p>
+<h2 data-number="5.1" id="lambda-coroutines"><span class="header-section-number">5.1</span> Lambda coroutines</h2>
+<p>A lambda function can be a coroutine. Due to an interaction between how C++ lambda coroutines are specified and how Seastar coroutines work, using lambda coroutines as continuations can result in use-after-free. To avoid such problems, take one of the following approaches:</p>
+<ol type="1">
+<li>Use lambda coroutines as arguments to functions that explicitly claim support for them</li>
+<li>Wrap lambda coroutines with <code>seastar::coroutine::lambda()</code>, and ensure the lambda coroutine is fully awaited within the statement it is defined in.</li>
+</ol>
+<p>An example of wrapping a lambda coroutine is:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/coroutine.hh&gt;</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/coroutine/maybe_yield.hh&gt;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true"></a>future&lt;&gt; foo() {</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true"></a>    <span class="dt">int</span> n = <span class="dv">3</span>;</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true"></a>    <span class="dt">int</span> m = <span class="kw">co_await</span> seastar::yield().then(seastar::coroutine::lambda([n] () -&gt; future&lt;<span class="dt">int</span>&gt; {</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true"></a>        <span class="kw">co_await</span> seastar::coroutine::maybe_yield();</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true"></a>        <span class="co">// `n` can be safely used here</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true"></a>        <span class="kw">co_return</span> n;</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true"></a>    }));</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true"></a>    <span class="ot">assert</span>(n == m);</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Notes: 1. <code>seastar::future::then()</code> accepts a continuation 2. We wrap the argument to <code>seastar::future::then()</code> with <code>seastar::coroutine::lambda()</code> 3. We ensure evaluation of the lambda completes within the same expression using the outer <code>co_await</code>.</p>
+<p>More information can be found in <code>lambda-coroutine-fiasco.md</code>.</p>
+<h2 data-number="5.2" id="generators-in-coroutines"><span class="header-section-number">5.2</span> Generators in coroutines</h2>
+<p>Sometimes, it would be convenient to model a view of <code>input_range</code> with a coroutine which emits the elements one after another asynchronously. From the consumer of the view&#8217;s perspective, it can retrieve the elements by <code>co_await</code>ing the return value of the coroutine. From the coroutine&#8217;s perspective, it is able to produce the elements multiple times using <code>co_yield</code> without &#8220;leaving&#8221; the coroutine. A function producing a sequence of values can be named &#8220;generator&#8221;. But unlike the regular coroutine which returns a single <code>seastar::future&lt;T&gt;</code>, a generator should return <code>seastar::coroutine::experimental::generator&lt;T, Container&gt;</code>. Where <code>T</code> is the type of the elements, while <code>Container</code> is a template, which is used to store the elements. Because, underneath of Seastar&#8217;s generator implementation, a bounded buffer is used for holding the elements not yet retrieved by the consumer, there is a design decision to make &#8211; what kind of container should be used, and what its maximum size should be. To define the bounded buffer, developers need to:</p>
+<ol type="1">
+<li>specify the type of the container&#8217;s type by via the second template parameter of the <code>generator</code></li>
+<li>specify the size of the bounded buffer by passing the size as the first parameter of the generator coroutine. The type of the size have to be <code>seastar::coroutine::experimental::buffer_size_t</code>.</li>
+</ol>
+<p>But there is an exception, if the buffer&#8217;s size is one, we assume that the programmer is likely to use <code>std::optional</code> for the bounded buffer, so it&#8217;s not required to pass the maximum size of the buffer as the first parameter in this case. But if a coroutine uses <code>std::optional</code> as its buffer, and its function sigature still lists the size as its first parameter, it will not break anything. As this parameter will just be ignored by the underlying implementation.</p>
+<p>Following is an example</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/circular_buffer.hh&gt;</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/coroutine.hh&gt;</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/sleep.hh&gt;</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/coroutine/generator.hh&gt;</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true"></a>seastar::future&lt;Preprocessed&gt; prepare_ingredients(Ingredients&amp;&amp;);</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true"></a>seastar::future&lt;Dish&gt; cook_a_dish(Preprocessed&amp;&amp;);</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true"></a>seastar::future&lt;&gt; consume_a_dish(Dish&amp;&amp;);</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true"></a></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true"></a>seastar::coroutine::experimental::generator&lt;Dish, seastar::circular_buffer&gt;</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true"></a>make_dishes(coroutine::experimental::<span class="dt">buffer_size_t</span> max_dishes_on_table,</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true"></a>            Ingredients&amp;&amp; ingredients) {</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true"></a>    <span class="cf">while</span> (ingredients) {</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true"></a>        <span class="kw">auto</span> some_ingredients = ingredients.alloc();</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true"></a>        <span class="kw">auto</span> preprocessed = <span class="kw">co_await</span> prepare_ingredients(<span class="bu">std::</span>move(some_ingredients));</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true"></a>        <span class="kw">co_yield</span> <span class="kw">co_await</span> cook_a_dish(<span class="bu">std::</span>move(preprocessed));</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true"></a>    }</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true"></a>}</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true"></a></span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true"></a>seastar::future&lt;&gt; have_a_dinner(<span class="dt">unsigned</span> max_dishes_on_table) {</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true"></a>    Ingredients ingredients;</span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true"></a>    <span class="kw">auto</span> dishes = make_dishes(coroutine::experimental::<span class="dt">buffer_size_t</span>{max_dishes_on_table},</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true"></a>                              <span class="bu">std::</span>move(ingredients));</span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true"></a>    <span class="cf">while</span> (<span class="kw">auto</span> dish = <span class="kw">co_await</span> dishes()) {</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true"></a>        <span class="kw">co_await</span> consume_a_dish(<span class="bu">std::</span>move(dish));</span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true"></a>    }</span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true"></a>}</span></code></pre></div>
+<p>In this hypothetical kitchen, a chef and a diner are working in parallel. Instead of preparing all dishes beforehand, the chef cooks the dishes while the diner is consuming them one after another. Under most circumstances, neither the chef or the diner is blocked by its peer. The dishes are buffered using the specified <code>seastar::circular_buffer&lt;Dish&gt;</code>. But if the diner is too slow so that there are <code>max_dishes_on_table</code> dishes left on the table, the chef would wait until the number of dishes is less than this setting. Please note, as explained above, despite that this parameter is not referenced by the coroutine&#8217;s body, it is actually passed to the generator&#8217;s promise constructor, which in turn creates the buffer, as we are not using <code>std::optional</code> here. On the other hand, apparently, if there is no dishes on the table, the diner would wait for new ones to be prepared by the chef.</p>
+<p>Please note, <code>generator&lt;T, Container&gt;</code> is still at its early stage of developing, the public interface this template is subject to change before it is stablized enough.</p>
+<h2 data-number="5.3" id="exceptions-in-coroutines"><span class="header-section-number">5.3</span> Exceptions in coroutines</h2>
+<p>Coroutines automatically translate exceptions to futures and back.</p>
+<p>Calling <code>co_await foo()</code>, when <code>foo()</code> returns an exceptional future, will throw the exception carried by the future.</p>
+<p>Similarly throwing within a coroutine will cause the coroutine to return an exceptional future.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/coroutine.hh&gt;</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true"></a>seastar::future&lt;&gt; function_returning_an_exceptional_future();</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true"></a></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true"></a>seastar::future&lt;&gt; exception_handling() {</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true"></a>    <span class="cf">try</span> {</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true"></a>        <span class="kw">co_await</span> function_returning_an_exceptional_future();</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true"></a>    } <span class="cf">catch</span> (...) {</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true"></a>        <span class="co">// exception will be handled here</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true"></a>    }</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true"></a>    <span class="cf">throw</span> <span class="dv">3</span>; <span class="co">// will be captured by coroutine and returned as</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true"></a>             <span class="co">// an exceptional future</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true"></a>}</span></code></pre></div>
+<p>In certain cases, exceptions can also be propagated directly, without throwing or rethrowing them. It can be achieved by returning a <code>coroutine::exception</code> wrapper, but it unfortunately only works for coroutines which return <code>future&lt;T&gt;</code>, not <code>future&lt;&gt;</code>, due to the limitations in compilers. In particular, the example above won&#8217;t compile if the return type is changed to <code>future&lt;&gt;</code>.</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; exception_propagating() {</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a>    <span class="bu">std::</span>exception_ptr eptr;</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a>    <span class="cf">try</span> {</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a>        <span class="kw">co_await</span> function_returning_an_exceptional_future();</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true"></a>    } <span class="cf">catch</span> (...) {</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true"></a>        eptr = <span class="bu">std::</span>current_exception();</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true"></a>    }</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true"></a>    <span class="cf">if</span> (eptr) {</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true"></a>        <span class="kw">co_return</span> seastar::coroutine::exception(eptr); <span class="co">// Saved exception pointer can be propagated without rethrowing</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true"></a>    }</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true"></a>    <span class="kw">co_return</span> seastar::coroutine::make_exception(<span class="dv">3</span>); <span class="co">// Custom exceptions can be propagated without throwing</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true"></a>}</span></code></pre></div>
+<h2 data-number="5.4" id="concurrency-in-coroutines"><span class="header-section-number">5.4</span> Concurrency in coroutines</h2>
+<p>The <code>co_await</code> operator allows for simple sequential execution. Multiple coroutines can execute in parallel, but each coroutine has only one outstanding computation at a time.</p>
+<p>The <code>seastar::coroutine::all</code> class template allows a coroutine to fork into several concurrently executing sub-coroutines (or Seastar fibers, see below) and join again when they complete. Consider this example:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/coroutines.hh&gt;</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/coroutine/all.hh&gt;</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true"></a></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; read(<span class="dt">int</span> key);</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true"></a></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; parallel_sum(<span class="dt">int</span> key1, <span class="dt">int</span> key2) {</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true"></a>    <span class="dt">int</span> [a, b] = <span class="kw">co_await</span> seastar::coroutine::all(</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true"></a>        [&amp;] {</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true"></a>            <span class="cf">return</span> read(key1);</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true"></a>        },</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true"></a>        [&amp;] {</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true"></a>            <span class="cf">return</span> read(key2);</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true"></a>        }</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true"></a>    );</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true"></a>    <span class="kw">co_return</span> a + b;</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Here, two read() calls are launched concurrently. The coroutine is paused until both reads complete, and the values returned are assigned to <code>a</code> and <code>b</code>. If <code>read(key)</code> is an operation that involves I/O, then the concurrent execution will complete sooner than if we <code>co_await</code>ed each call separately, since I/O can be overlapped.</p>
+<p>Note that <code>all</code> waits for all of its sub-computations, even if some throw an exception. If an exception is thrown, it is propagated to the calling coroutine.</p>
+<p>The <code>seastar::coroutine::parallel_for_each</code> class template allows a coroutine to fork into several concurrently executing function invocations (or Seastar fibers, see below) over a range of elements and join again when they complete. Consider this example:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/coroutines.hh&gt;</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/coroutine/parallel_for_each.hh&gt;</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true"></a>seastar::future&lt;<span class="dt">bool</span>&gt; all_exist(<span class="bu">std::</span>vector&lt;sstring&gt; filenames) {</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true"></a>    <span class="dt">bool</span> res = <span class="kw">true</span>;</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true"></a>    <span class="kw">co_await</span> seastar::coroutine::parallel_for_each(filenames, [&amp;res] (<span class="at">const</span> seastar::sstring&amp; name) -&gt; seastar::future&lt;&gt; {</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true"></a>        res &amp;= <span class="kw">co_await</span> seastar::file_exists(name);</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true"></a>    });</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true"></a>    <span class="kw">co_return</span> res;</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Here, the lambda function passed to parallel_for_each is launched concurrently for each element in the filenames vector. The coroutine is paused until all calls complete.</p>
+<h2 data-number="5.5" id="breaking-up-long-running-computations"><span class="header-section-number">5.5</span> Breaking up long running computations</h2>
+<p>Seastar is generally used for I/O, and coroutines usually launch I/O operations and consume their results, with little computation in between. But occasionally a long running computation is needed, and this risks preventing the reactor from performing I/O and scheduling other tasks.</p>
+<p>A coroutine will automatically yield in a <code>co_await</code> expression; but in a computation we do not <code>co_await</code> anything. We can use the <code>seastar::coroutine::maybe_yield</code> class in such cases:</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/coroutine/maybe_yield&gt;</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; long_loop(<span class="dt">int</span> n) {</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true"></a>    <span class="dt">float</span> acc = <span class="dv">0</span>;</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true"></a>    <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; n; ++i) {</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true"></a>        acc += <span class="bu">std::</span>sin(<span class="dt">float</span>(i));</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true"></a>        <span class="co">// Give the Seastar reactor opportunity to perform I/O or schedule</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true"></a>        <span class="co">// other tasks.</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true"></a>        <span class="kw">co_await</span> seastar::coroutine::maybe_yield();</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true"></a>    }</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true"></a>    <span class="kw">co_return</span> acc;</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true"></a>}</span></code></pre></div>
+<h2 data-number="5.6" id="bypassing-preemption-checks-in-coroutines"><span class="header-section-number">5.6</span> Bypassing preemption checks in coroutines</h2>
+<p>By default, <code>co_await</code>-ing a future performs a preemption check, and will suspend if the task quota is already depleted. However, in certain cases it might be useful to be able to assume that awaiting a ready future will not yield. For such cases, it&#8217;s possible to explicitly bypass the preemption check:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/coroutine.hh&gt;</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true"></a><span class="kw">struct</span> resource;</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; compute_always_ready(<span class="dt">int</span> i, resource&amp; r);</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; accumulate(<span class="dt">int</span> n, resource&amp; important_resource) {</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true"></a>    <span class="dt">float</span> acc = <span class="dv">0</span>;</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true"></a>    <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; n; ++i) {</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true"></a>        <span class="co">// This await will not yield the control, so we're sure that nobody will</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true"></a>        <span class="co">// be able to touch important_resource while we accumulate all the results.</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true"></a>        acc += <span class="kw">co_await</span> seastar::coroutine::without_preemption_check(compute_always_ready(i, important_resource));</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true"></a>    }</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true"></a>    <span class="kw">co_return</span> acc;</span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true"></a>}</span></code></pre></div>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="4.html">4 Introducing futures and continuations</a>. Next: <a href="6.html">6 Continuations</a>.</div></body></html>

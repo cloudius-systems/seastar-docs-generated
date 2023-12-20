@@ -1,0 +1,208 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #c4a000; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #000000; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #000000; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #000000; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Next: <a href="2.html">2 Getting started</a>.</div><h1 data-number="1" id="introduction"><span class="header-section-number">1</span> Introduction</h1>
+<p><strong>Seastar</strong>, which we introduce in this document, is a C++ library for writing highly efficient complex server applications on modern multi-core machines.</p>
+<p>Traditionally, the programming languages libraries and frameworks used for writing server applications have been divided into two distinct camps: those focusing on efficiency, and those focusing on complexity. Some frameworks are extremely efficient and yet allow building only simple applications (e.g., DPDK allows applications which process packets individually), while other frameworks allow building extremely complex applications, at the cost of run-time efficiency. Seastar is our attempt to get the best of both worlds: To create a library which allows building highly complex server applications, and yet achieve optimal performance.</p>
+<p>The inspiration and first use case of Seastar was Scylla, a rewrite of Apache Cassandra. Cassandra is a very complex application, and yet, with Seastar we were able to re-implement it with as much as 10-fold throughput increase, as well as significantly lower and more consistent latencies.</p>
+<p>Seastar offers a complete asynchronous programming framework, which uses two concepts - <strong>futures</strong> and <strong>continuations</strong> - to uniformly represent, and handle, every type of asynchronous event, including network I/O, disk I/O, and complex combinations of other events.</p>
+<p>Since modern multi-core and multi-socket machines have steep penalties for sharing data between cores (atomic instructions, cache line bouncing and memory fences), Seastar programs use the share-nothing programming model, i.e., the available memory is divided between the cores, each core works on data in its own part of memory, and communication between cores happens via explicit message passing (which itself happens using the SMP&#8217;s shared memory hardware, of course).</p>
+<h2 data-number="1.1" id="asynchronous-programming"><span class="header-section-number">1.1</span> Asynchronous programming</h2>
+<p>A server for a network protocol, such as the classic HTTP (Web) or SMTP (e-mail) servers, inherently deals with parallelism: Multiple clients send requests in parallel, and we cannot finish handling one request before starting to handle the next: A request may, and often does, need to block because of various reasons &#8212; a full TCP window (i.e., a slow connection), disk I/O, or even the client holding on to an inactive connection &#8212; and the server needs to handle other connections as well.</p>
+<p>The most straightforward way to handle such parallel connections, employed by classic network servers such as Inetd, Apache Httpd and Sendmail, is to use a separate operating-system process per connection. This technique evolved over the years to improve its performance: At first, a new process was spawned to handle each new connection; Later, a pool of existing processes was kept and each new connection was assigned to an unemployed process from the pool; Finally, the processes were replaced by threads. However, the common idea behind all these implementations is that at each moment, each process handles exclusively a single connection. Therefore, the server code is free to use blocking system calls, such as reading or writing to a connection, or reading from disk, and if this process blocks, all is well because we have many additional processes ready to handle other connections.</p>
+<p>Programming a server which uses a process (or a thread) per connection is known as <em>synchronous</em> programming, because the code is written linearly, and one line of code starts to run after the previous line finished. For example, the code may read a request from a socket, parse the request, and then piecemeal read a file from disk and write it back to the socket. Such code is easy to write, almost like traditional non-parallel programs. In fact, it&#8217;s even possible to run an external non-parallel program to handle each request &#8212; this is for example how Apache HTTPd ran &#8220;CGI&#8221; programs, the first implementation of dynamic Web-page generation.</p>
+<blockquote>
+<p>NOTE: although the synchronous server application is written in a linear, non-parallel, fashion, behind the scenes the kernel helps ensure that everything happens in parallel and the machine&#8217;s resources &#8212; CPUs, disk and network &#8212; are fully utilized. Beyond the process parallelism (we have multiple processes handling multiple connections in parallel), the kernel may even parallelize the work of one individual connection &#8212; for example process an outstanding disk request (e.g., read from a disk file) in parallel with handling the network connection (send buffered-but-yet-unsent data, and buffer newly-received data until the application is ready to read it).</p>
+</blockquote>
+<p>But synchronous, process-per-connection, server programming didn&#8217;t come without disadvantages and costs. Slowly but surely, server authors realized that starting a new process is slow, context switching is slow, and each process comes with significant overheads &#8212; most notably the size of its stack. Server and kernel authors worked hard to mitigate these overheads: They switched from processes to threads, from creating new threads to thread pools, they lowered default stack size of each thread, and increased the virtual memory size to allow more partially-utilized stacks. But still, servers with synchronous designs had unsatisfactory performance, and scaled badly as the number of concurrent connections grew. In 1999, Dan Kigel popularized &#8220;the C10K problem&#8221;, the need of a single server to efficiently handle 10,000 concurrent connections &#8212; most of them slow or even inactive.</p>
+<p>The solution, which became popular in the following decade, was to abandon the cozy but inefficient synchronous server design, and switch to a new type of server design &#8212; the <em>asynchronous</em>, or <em>event-driven</em>, server. An event-driven server has just one thread, or more accurately, one thread per CPU. This single thread runs a tight loop which, at each iteration, checks, using <code>poll()</code> (or the more efficient <code>epoll</code>) for new events on many open file descriptors, e.g., sockets. For example, an event can be a socket becoming readable (new data has arrived from the remote end) or becoming writable (we can send more data on this connection). The application handles this event by doing some non-blocking operations, modifying one or more of the file descriptors, and maintaining its knowledge of the <em>state</em> of this connection.</p>
+<p>However, writers of asynchronous server applications faced, and still face today, two significant challenges:</p>
+<ul>
+<li><p><strong>Complexity:</strong> Writing a simple asynchronous server is straightforward. But writing a <em>complex</em> asynchronous server is notoriously difficult. The handling of a single connection, instead of being a simple easy-to-read function call, now involves a large number of small callback functions, and a complex state machine to remember which function needs to be called when each event occurs.</p></li>
+<li><p><strong>Non-blocking:</strong> Having just one thread per core is important for the performance of the server application, because context switches are slow. However, if we only have one thread per core, the event-handling functions must <em>never</em> block, or the core will remain idle. But some existing programming languages and frameworks leave the server author no choice but to use blocking functions, and therefore multiple threads. For example, <code>Cassandra</code> was written as an asynchronous server application; But because disk I/O was implemented with <code>mmap</code>ed files, which can uncontrollably block the whole thread when accessed, they are forced to run multiple threads per CPU.</p></li>
+</ul>
+<p>Moreover, when the best possible performance is desired, the server application, and its programming framework, has no choice but to also take the following into account:</p>
+<ul>
+<li><p><strong>Modern Machines</strong>: Modern machines are very different from those of just 10 years ago. They have many cores and deep memory hierarchies (from L1 caches to NUMA) which reward certain programming practices and penalizes others: Unscalable programming practices (such as taking locks) can devastate performance on many cores; Shared memory and lock-free synchronization primitives are available (i.e., atomic operations and memory-ordering fences) but are dramatically slower than operations that involve only data in a single core&#8217;s cache, and also prevent the application from scaling to many cores.</p></li>
+<li><p><strong>Programming Language:</strong> High-level languages such Java, Javascript, and similar &#8220;modern&#8221; languages are convenient, but each comes with its own set of assumptions which conflict with the requirements listed above. These languages, aiming to be portable, also give the programmer less control over the performance of critical code. For really optimal performance, we need a programming language which gives the programmer full control, zero run-time overheads, and on the other hand &#8212; sophisticated compile-time code generation and optimization.</p></li>
+</ul>
+<p>Seastar is a framework for writing asynchronous server applications which aims to solve all four of the above challenges: It is a framework for writing <em>complex</em> asynchronous applications involving both network and disk I/O. The framework&#8217;s fast path is entirely single-threaded (per core), scalable to many cores and minimizes the use of costly sharing of memory between cores. It is a C++14 library, giving the user sophisticated compile-time features and full control over performance, without run-time overhead.</p>
+<h2 data-number="1.2" id="seastar"><span class="header-section-number">1.2</span> Seastar</h2>
+<p>Seastar is an event-driven framework allowing you to write non-blocking, asynchronous code in a relatively straightforward manner (once understood). Its APIs are based on futures. Seastar utilizes the following concepts to achieve extreme performance:</p>
+<ul>
+<li><strong>Cooperative micro-task scheduler</strong>: instead of running threads, each core runs a cooperative task scheduler. Each task is typically very lightweight &#8211; only running for as long as it takes to process the last I/O operation&#8217;s result and to submit a new one.</li>
+<li><strong>Share-nothing SMP architecture</strong>: each core runs independently of other cores in an SMP system. Memory, data structures, and CPU time are not shared; instead, inter-core communication uses explicit message passing. A Seastar core is often termed a shard. TODO: more here https://github.com/scylladb/seastar/wiki/SMP</li>
+<li><strong>Future based APIs</strong>: futures allow you to submit an I/O operation and to chain tasks to be executed on completion of the I/O operation. It is easy to run multiple I/O operations in parallel - for example, in response to a request coming from a TCP connection, you can issue multiple disk I/O requests, send messages to other cores on the same system, or send requests to other nodes in the cluster, wait for some or all of the results to complete, aggregate the results, and send a response.</li>
+<li><strong>Share-nothing TCP stack</strong>: while Seastar can use the host operating system&#8217;s TCP stack, it also provides its own high-performance TCP/IP stack built on top of the task scheduler and the share-nothing architecture. The stack provides zero-copy in both directions: you can process data directly from the TCP stack&#8217;s buffers, and send the contents of your own data structures as part of a message without incurring a copy. Read more&#8230;</li>
+<li><strong>DMA-based storage APIs</strong>: as with the networking stack, Seastar provides zero-copy storage APIs, allowing you to DMA your data to and from your storage devices.</li>
+</ul>
+<p>This tutorial is intended for developers already familiar with the C++ language, and will cover how to use Seastar to create a new application.</p>
+<p>TODO: copy text from https://github.com/scylladb/seastar/wiki/SMP https://github.com/scylladb/seastar/wiki/Networking</p>
+<div><a href="index.html">Back to table of contents</a>. Next: <a href="2.html">2 Getting started</a>.</div></body></html>

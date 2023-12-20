@@ -1,0 +1,187 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #c4a000; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #000000; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #000000; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #000000; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="23.html">23 Promise objects</a>. Next: <a href="25.html">25 Seastar::thread</a>.</div><h1 data-number="24" id="memory-allocation-in-seastar"><span class="header-section-number">24</span> Memory allocation in Seastar</h1>
+<h2 data-number="24.1" id="per-thread-memory-allocation"><span class="header-section-number">24.1</span> Per-thread memory allocation</h2>
+<p>Seastar requires that applications be sharded, i.e., that code running on different threads operate on different objects in memory. We already saw in <a href="3.html#seastar-memory">Seastar memory</a> how Seastar takes over a given amount of memory (often, most of the machine&#8217;s memory) and divides it equally between the different threads. Modern multi-socket machines have non-uniform memory access (NUMA), meaning that some parts of memory are closer to some of the cores, and Seastar takes this knowledge into account when dividing the memory between threads. Currently, the division of memory between threads is static, and equal - the threads are expected to experience roughly equal amount of load and require roughly equal amounts of memory.</p>
+<p>To achieve this per-thread allocation, Seastar redefines the C library functions <code>malloc()</code>, <code>free()</code>, and their numerous relatives &#8212; <code>calloc()</code>, <code>realloc()</code>, <code>posix_memalign()</code>, <code>memalign()</code>, <code>malloc_usable_size()</code>, and <code>malloc_trim()</code>. It also redefines the C++ memory allocation functions, <code>operator new</code>, <code>operator delete</code>, and all their variants (including array versions, the C++14 delete taking a size, and the C++17 variants taking required alignment).</p>
+<p>It is important to remember that Seastar&#8217;s different threads <em>can</em> see memory allocated by other threads, but they are nonetheless strongly discouraged from actually doing this. Sharing data objects between threads on modern multi-core machines results in stiff performance penalties from locks, memory barriers, and cache-line bouncing. Rather, Seastar encourages applications to avoid sharing objects between threads when possible (by <em>sharding</em> &#8212; each thread owns a subset of the objects), and when threads do need to interact they do so with explicit message passing, with <code>submit_to()</code>, as we shall see later.</p>
+<h2 data-number="24.2" id="foreign-pointers"><span class="header-section-number">24.2</span> Foreign pointers</h2>
+<p>An object allocated on one thread will be owned by this thread, and eventually should be freed by the same thread. Freeing memory on the <em>wrong</em> thread is strongly discouraged, but is currently supported (albeit slowly) to support library code beyond Seastar&#8217;s control. For example, <code>std::exception_ptr</code> allocates memory; So if we invoke an asynchronous operation on a remote thread and this operation returns an exception, when we free the returned <code>std::exception_ptr</code> this will happen on the &#8220;wrong&#8221; core. So Seastar allows it, but inefficiently.</p>
+<p>In most cases objects should spend their entire life on a single thread and be used only by this thread. But in some cases we want to reassign ownership of an object which started its life on one thread, to a different thread. This can be done using a <code>seastar::foreign_ptr&lt;&gt;</code>. A pointer, or smart pointer, to an object is wrapped in a <code>seastar::foreign_ptr&lt;P&gt;</code>. This wrapper can then be moved into code running in a different thread (e.g., using <code>submit_to()</code>).</p>
+<p>The most common use-case is a <code>seastar::foreign_ptr&lt;std::unique_ptr&lt;T&gt;&gt;</code>. The thread receiving this <code>foreign_ptr</code> will get exclusive use of the object, and when it destroys this wrapper, it will go back to the original thread to destroy the object. Note that the object is not only freed on the original shard - it is also <em>destroyed</em> (i.e., its destructor is run) there. This is often important when the object&#8217;s destructor needs to access other state which belongs to the original shard - e.g., unlink itself from a container.</p>
+<p>Although <code>foreign_ptr</code> ensures that the object&#8217;s <em>destructor</em> automatically runs on the object&#8217;s home thread, it does not absolve the user from worrying where to run the object&#8217;s other methods. Some simple methods, e.g., methods which just read from the object&#8217;s fields, can be run on the receiving thread. However, other methods may need to access other data owned by the object&#8217;s home shard, or need to prevent concurrent operations. Even if we&#8217;re sure that object is now used exclusively by the receiving thread, such methods must still be run, explicitly, on the home thread:</p>
+<pre><code>    // fp is some foreign_ptr&lt;&gt;
+    return smp::submit_to(fp.get_owner_shard(), [p=fp.get()]
+        { return p-&gt;some_method(); });</code></pre>
+<p>So <code>seastar::foreign_ptr&lt;&gt;</code> not only has functional benefits (namely, to run the destructor on the home shard), it also has <em>documentational</em> benefits - it warns the programmer to watch out every time the object is used, that this is a <em>foreign</em> pointer, and if we want to do anything non-trivial with the pointed object, we may need to do it on the home shard.</p>
+<p>Above, we discussed the case of transferring ownership of an object to a another shard, via <code>seastar::foreign_ptr&lt;std::unique_ptr&lt;T&gt;&gt;</code>. However, sometimes the sender does not want to relinquish ownership of the object. Sometimes, it wants the remote thread to operate on its object and return with the object intact. Sometimes, it wants to send the same object to multiple shards. In such cases, <code>seastar::foreign_ptr&lt;seastar::lw_shared_ptr&lt;T&gt;&gt;</code> is useful. The user needs to watch out, of course, not to operate on the same object from multiple threads concurrently. If this cannot be ensured by program logic alone, some methods of serialization must be used - such as running the operations on the home shard with <code>submit_to()</code> as described above.</p>
+<p>Normally, a <code>seastar::foreign_ptr</code> cannot not be copied - only moved. However, when it holds a smart pointer that can be copied (namely, a <code>shared_ptr</code>), one may want to make an additional copy of that pointer and create a second <code>foreign_ptr</code>. Doing this is inefficient and asynchronous (it requires communicating with the original owner of the object to create the copies), so a method <code>future&lt;foreign_ptr&gt; copy()</code> needs to be explicitly used instead of the normal copy constructor.</p>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="23.html">23 Promise objects</a>. Next: <a href="25.html">25 Seastar::thread</a>.</div></body></html>

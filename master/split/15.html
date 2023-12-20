@@ -1,0 +1,235 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #c4a000; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #000000; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #000000; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #000000; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="14.html">14 Pipes</a>. Next: <a href="16.html">16 Introducing shared-nothing programming</a>.</div><h1 data-number="15" id="shutting-down-a-service-with-a-gate"><span class="header-section-number">15</span> Shutting down a service with a gate</h1>
+<p>Consider an application which has some long operation <code>slow()</code>, and many such operations may be started at any time. A number of <code>slow()</code> operations may even even be active in parallel. Now, you want to shut down this service, but want to make sure that before that, all outstanding operations are completed. Moreover, you don&#8217;t want to allow new <code>slow()</code> operations to start while the shut-down is in progress.</p>
+<p>This is the purpose of a <code>seastar::gate</code>. A gate <code>g</code> maintains an internal counter of operations in progress. We call <code>g.enter()</code> when entering an operation (i.e., before running <code>slow()</code>), and call <code>g.leave()</code> when leaving the operation (when a call to <code>slow()</code> completed). The method <code>g.close()</code> <em>closes the gate</em>, which means it forbids any further calls to <code>g.enter()</code> (such attempts will generate an exception); Moreover <code>g.close()</code> returns a future which resolves when all the existing operations have completed. In other words, when <code>g.close()</code> resolves, we know that no more invocations of <code>slow()</code> can be in progress - because the ones that already started have completed, and new ones could not have started.</p>
+<p>The construct</p>
+<div class="sourceCode" id="cb83"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true"></a>seastar::with_gate(g, [] { <span class="cf">return</span> slow(); })</span></code></pre></div>
+<p>can be used as a shortcut to the idiom</p>
+<div class="sourceCode" id="cb84"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true"></a>g.enter();</span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true"></a>slow().finally([&amp;g] { g.leave(); });</span></code></pre></div>
+<p>Here is a typical example of using a gate:</p>
+<div class="sourceCode" id="cb85"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/sleep.hh&gt;</span></span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/gate.hh&gt;</span></span>
+<span id="cb85-3"><a href="#cb85-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;boost/iterator/counting_iterator.hpp&gt;</span></span>
+<span id="cb85-4"><a href="#cb85-4" aria-hidden="true"></a></span>
+<span id="cb85-5"><a href="#cb85-5" aria-hidden="true"></a>seastar::future&lt;&gt; slow(<span class="dt">int</span> i) {</span>
+<span id="cb85-6"><a href="#cb85-6" aria-hidden="true"></a>    <span class="bu">std::</span>cerr &lt;&lt; <span class="st">"starting "</span> &lt;&lt; i &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb85-7"><a href="#cb85-7" aria-hidden="true"></a>    <span class="cf">return</span> seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">10</span>)).then([i] {</span>
+<span id="cb85-8"><a href="#cb85-8" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; <span class="st">"done "</span> &lt;&lt; i &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb85-9"><a href="#cb85-9" aria-hidden="true"></a>    });</span>
+<span id="cb85-10"><a href="#cb85-10" aria-hidden="true"></a>}</span>
+<span id="cb85-11"><a href="#cb85-11" aria-hidden="true"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb85-12"><a href="#cb85-12" aria-hidden="true"></a>    <span class="cf">return</span> seastar::do_with(seastar::gate(), [] (<span class="kw">auto</span>&amp; g) {</span>
+<span id="cb85-13"><a href="#cb85-13" aria-hidden="true"></a>        <span class="cf">return</span> seastar::do_for_each(<span class="ex">boost::</span>counting_iterator&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>),</span>
+<span id="cb85-14"><a href="#cb85-14" aria-hidden="true"></a>                <span class="ex">boost::</span>counting_iterator&lt;<span class="dt">int</span>&gt;(<span class="dv">6</span>),</span>
+<span id="cb85-15"><a href="#cb85-15" aria-hidden="true"></a>                [&amp;g] (<span class="dt">int</span> i) {</span>
+<span id="cb85-16"><a href="#cb85-16" aria-hidden="true"></a>            seastar::with_gate(g, [i] { <span class="cf">return</span> slow(i); });</span>
+<span id="cb85-17"><a href="#cb85-17" aria-hidden="true"></a>            <span class="co">// wait one second before starting the next iteration</span></span>
+<span id="cb85-18"><a href="#cb85-18" aria-hidden="true"></a>            <span class="cf">return</span> seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">1</span>));</span>
+<span id="cb85-19"><a href="#cb85-19" aria-hidden="true"></a>        }).then([&amp;g] {</span>
+<span id="cb85-20"><a href="#cb85-20" aria-hidden="true"></a>            seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">1</span>)).then([&amp;g] {</span>
+<span id="cb85-21"><a href="#cb85-21" aria-hidden="true"></a>                <span class="co">// This will fail, because it will be after the close()</span></span>
+<span id="cb85-22"><a href="#cb85-22" aria-hidden="true"></a>                seastar::with_gate(g, [] { <span class="cf">return</span> slow(<span class="dv">6</span>); });</span>
+<span id="cb85-23"><a href="#cb85-23" aria-hidden="true"></a>            });</span>
+<span id="cb85-24"><a href="#cb85-24" aria-hidden="true"></a>            <span class="cf">return</span> g.close();</span>
+<span id="cb85-25"><a href="#cb85-25" aria-hidden="true"></a>        });</span>
+<span id="cb85-26"><a href="#cb85-26" aria-hidden="true"></a>    });</span>
+<span id="cb85-27"><a href="#cb85-27" aria-hidden="true"></a>}</span></code></pre></div>
+<p>In this example, we have a function <code>future&lt;&gt; slow()</code> taking 10 seconds to complete. We run it in a loop 5 times, waiting 1 second between calls, and surround each call with entering and leaving the gate (using <code>with_gate</code>). After the 5th call, while all calls are still ongoing (because each takes 10 seconds to complete), we close the gate and wait for it before exiting the program. We also test that new calls cannot begin after closing the gate, by trying to enter the gate again one second after closing it.</p>
+<p>The output of this program looks like this:</p>
+<pre><code>starting 1
+starting 2
+starting 3
+starting 4
+starting 5
+WARNING: exceptional future ignored of type 'seastar::gate_closed_exception': gate closed
+done 1
+done 2
+done 3
+done 4
+done 5</code></pre>
+<p>Here, the invocations of <code>slow()</code> were started at 1 second intervals. After the &#8220;<code>starting 5</code>&#8221; message, we closed the gate and another attempt to use it resulted in a <code>seastar::gate_closed_exception</code>, which we ignored and hence this message. At this point the application waits for the future returned by <code>g.close()</code>. This will happen once all the <code>slow()</code> invocations have completed: Immediately after printing &#8220;<code>done 5</code>&#8221;, the test program stops.</p>
+<p>As explained so far, a gate can prevent new invocations of an operation, and wait for any in-progress operations to complete. However, these in-progress operations may take a very long time to complete. Often, a long operation would like to know that a shut-down has been requested, so it could stop its work prematurely. An operation can check whether its gate was closed by calling the gate&#8217;s <code>check()</code> method: If the gate is already closed, the <code>check()</code> method throws an exception (the same <code>seastar::gate_closed_exception</code> that <code>enter()</code> would throw at that point). The intent is that the exception will cause the operation calling it to stop at this point.</p>
+<p>In the previous example code, we had an un-interruptible operation <code>slow()</code> which slept for 10 seconds. Let&#8217;s replace it by a loop of 10 one-second sleeps, calling <code>g.check()</code> each second:</p>
+<div class="sourceCode" id="cb87"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true"></a>seastar::future&lt;&gt; slow(<span class="dt">int</span> i, seastar::gate &amp;g) {</span>
+<span id="cb87-2"><a href="#cb87-2" aria-hidden="true"></a>    <span class="bu">std::</span>cerr &lt;&lt; <span class="st">"starting "</span> &lt;&lt; i &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb87-3"><a href="#cb87-3" aria-hidden="true"></a>    <span class="cf">return</span> seastar::do_for_each(<span class="ex">boost::</span>counting_iterator&lt;<span class="dt">int</span>&gt;(<span class="dv">0</span>),</span>
+<span id="cb87-4"><a href="#cb87-4" aria-hidden="true"></a>                                <span class="ex">boost::</span>counting_iterator&lt;<span class="dt">int</span>&gt;(<span class="dv">10</span>),</span>
+<span id="cb87-5"><a href="#cb87-5" aria-hidden="true"></a>            [&amp;g] (<span class="dt">int</span>) {</span>
+<span id="cb87-6"><a href="#cb87-6" aria-hidden="true"></a>        g.check();</span>
+<span id="cb87-7"><a href="#cb87-7" aria-hidden="true"></a>        <span class="cf">return</span> seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">1</span>));</span>
+<span id="cb87-8"><a href="#cb87-8" aria-hidden="true"></a>    }).finally([i] {</span>
+<span id="cb87-9"><a href="#cb87-9" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; <span class="st">"done "</span> &lt;&lt; i &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb87-10"><a href="#cb87-10" aria-hidden="true"></a>    });</span>
+<span id="cb87-11"><a href="#cb87-11" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Now, just one second after gate is closed (after the &#8220;starting 5&#8221; message is printed), all the <code>slow()</code> operations notice the gate was closed, and stop. As expected, the exception stops the <code>do_for_each()</code> loop, and the <code>finally()</code> continuation is performed so we see the &#8220;done&#8221; messages for all five operations.</p>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="14.html">14 Pipes</a>. Next: <a href="16.html">16 Introducing shared-nothing programming</a>.</div></body></html>

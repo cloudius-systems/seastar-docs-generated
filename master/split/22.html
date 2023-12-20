@@ -1,0 +1,326 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #c4a000; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #000000; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #000000; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #000000; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="21.html">21 Command line options</a>. Next: <a href="23.html">23 Promise objects</a>.</div><h1 data-number="22" id="debugging-a-seastar-program"><span class="header-section-number">22</span> Debugging a Seastar program</h1>
+<h2 data-number="22.1" id="debugging-ignored-exceptions"><span class="header-section-number">22.1</span> Debugging ignored exceptions</h2>
+<p>If a future resolves with an exception, and the application neglects to handle that exception or to explicitly ignore it, the application may have missed an important problem. This is likely to be an application bug.</p>
+<p>Therefore, Seastar prints a warning message to the log if a future is destroyed when it stores an exception that hasn&#8217;t been handled.</p>
+<p>For example, consider this code:</p>
+<div class="sourceCode" id="cb101"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/future.hh&gt;</span></span>
+<span id="cb101-2"><a href="#cb101-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/sleep.hh&gt;</span></span>
+<span id="cb101-3"><a href="#cb101-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/app-template.hh&gt;</span></span>
+<span id="cb101-4"><a href="#cb101-4" aria-hidden="true"></a></span>
+<span id="cb101-5"><a href="#cb101-5" aria-hidden="true"></a><span class="kw">class</span> myexception {};</span>
+<span id="cb101-6"><a href="#cb101-6" aria-hidden="true"></a></span>
+<span id="cb101-7"><a href="#cb101-7" aria-hidden="true"></a>seastar::future&lt;&gt; g() {</span>
+<span id="cb101-8"><a href="#cb101-8" aria-hidden="true"></a>    <span class="cf">return</span> seastar::make_exception_future&lt;&gt;(myexception());</span>
+<span id="cb101-9"><a href="#cb101-9" aria-hidden="true"></a>}</span>
+<span id="cb101-10"><a href="#cb101-10" aria-hidden="true"></a></span>
+<span id="cb101-11"><a href="#cb101-11" aria-hidden="true"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb101-12"><a href="#cb101-12" aria-hidden="true"></a>    g();</span>
+<span id="cb101-13"><a href="#cb101-13" aria-hidden="true"></a>    <span class="cf">return</span> seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">1</span>));</span>
+<span id="cb101-14"><a href="#cb101-14" aria-hidden="true"></a>}</span>
+<span id="cb101-15"><a href="#cb101-15" aria-hidden="true"></a></span>
+<span id="cb101-16"><a href="#cb101-16" aria-hidden="true"></a><span class="dt">int</span> main(<span class="dt">int</span> argc, <span class="dt">char</span>** argv) {</span>
+<span id="cb101-17"><a href="#cb101-17" aria-hidden="true"></a>    seastar::app_template app;</span>
+<span id="cb101-18"><a href="#cb101-18" aria-hidden="true"></a>    app.run(argc, argv, f);</span>
+<span id="cb101-19"><a href="#cb101-19" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Here, the main function <code>f()</code> calls <code>g()</code>, but doesn&#8217;t do anything with the future it returns. But this future resolves with an exception, and this exception is silently ignored. So Seastar prints this warning message about the ignored exception:</p>
+<pre><code>WARN  2020-03-31 11:08:09,208 [shard 0] seastar - Exceptional future ignored: myexception, backtrace:   /lib64/libasan.so.5+0x6ce7f
+  0x1a64193
+  0x1a6265f
+  0xf326cc
+  0xeaf1a0
+  0xeaffe4
+  0xead7be
+  0xeb5917
+  0xee2477
+  0xec312e
+  0xec8fcf
+  0xeec765
+  0xee1b29
+  0xed9fab
+  0xec27c8
+  0xec867f
+  0xf00acc
+  0xef179d
+  0xef1824
+  0xef18b5
+  0xee4827
+  0xee470f
+  0xf00f81
+  0xebac29
+  0xeb9095
+  0xeb9174
+  0xeb925a
+  0xeb9964
+  0xebef89
+  0x10f74c3
+  0x10fb439
+  0x11005fd
+  0xec4f08
+  0xec2f43
+  0xec3461
+  0xeadabe
+  /lib64/libc.so.6+0x271a2
+  0xead52d</code></pre>
+<p>This message says that an exceptional future was ignored, and that the type of the exception was &#8220;<code>myexception</code>&#8221;. The type of the exception is usually not enough to pinpoint where the problem happened, so the warning message also includes the backtrace - the call chain - leading to where the exceptional future was destroyed. The backtrace is given as a list of addresses, where code in other shared libraries is written as a shared library plus offset (when ASLR is enabled, the shared libraries are mapped in a different address each time).</p>
+<p>Seastar includes a utility, <code>seastar-addr2line</code>, for translating these addresses into readable backtraces including exact method names, source files and line numbers. This utility needs the <em>unstripped</em> executable. Typically, a stripped executable is used for production, but an unstripped copy is kept separately to be used in debugging - including <code>seastar-addr2line</code>.</p>
+<p>To decode the backtrace, we run</p>
+<pre><code>seastar-addr2line -e a.out</code></pre>
+<p>And then paste the list of addresses in the warning message, and conclude with a <code>control-D</code> (it&#8217;s also possible, if you want, to put the list of addresses in the <code>seastar-addr2line</code> command line). The result looks like this:</p>
+<pre><code>void seastar::backtrace&lt;seastar::current_backtrace()::{lambda(seastar::frame)#1}&gt;(seastar::current_backtrace()::{lambda(seastar::frame)#1}&amp;&amp;) at include/seastar/util/backtrace.hh:56
+seastar::current_backtrace() at src/util/backtrace.cc:84
+seastar::report_failed_future(std::__exception_ptr::exception_ptr const&amp;) at src/core/future.cc:116
+seastar::future_state_base::~future_state_base() at include/seastar/core/future.hh:335
+seastar::future_state&lt;&gt;::~future_state() at include/seastar/core/future.hh:414
+ (inlined by) seastar::future&lt;&gt;::~future() at include/seastar/core/future.hh:990
+f() at test.cc:12
+std::_Function_handler&lt;seastar::future&lt;&gt; (), seastar::future&lt;&gt; (*)()&gt;::_M_invoke(std::_Any_data const&amp;) at /usr/include/c++/9/bits/std_function.h:286
+std::function&lt;seastar::future&lt;&gt; ()&gt;::operator()() const at /usr/include/c++/9/bits/std_function.h:690
+seastar::app_template::run(int, char**, std::function&lt;seastar::future&lt;&gt; ()&gt;&amp;&amp;)::{lambda()#1}::operator()() const at src/core/app-template.cc:131
+std::_Function_handler&lt;seastar::future&lt;int&gt; (), seastar::app_template::run(int, char**, std::function&lt;seastar::future&lt;&gt; ()&gt;&amp;&amp;)::{lambda()#1}&gt;::_M_invoke(std::_Any_data const&amp;) at /usr/include/c++/9/bits/std_function.h:286
+std::function&lt;seastar::future&lt;int&gt; ()&gt;::operator()() const at /usr/include/c++/9/bits/std_function.h:690
+seastar::future&lt;int&gt; seastar::futurize&lt;seastar::future&lt;int&gt; &gt;::invoke&lt;std::function&lt;seastar::future&lt;int&gt; ()&gt;&amp;&gt;(std::function&lt;seastar::future&lt;int&gt; ()&gt;&amp;) at include/seastar/core/future.hh:1670
+auto seastar::futurize_invoke&lt;std::function&lt;seastar::future&lt;int&gt; ()&gt;&amp;&gt;(std::function&lt;seastar::future&lt;int&gt; ()&gt;&amp;) at include/seastar/core/future.hh:1754
+seastar::app_template::run(int, char**, std::function&lt;seastar::future&lt;int&gt; ()&gt;&amp;&amp;)::{lambda()#1}::operator()() at src/core/app-template.cc:120 (discriminator 4)
+std::_Function_handler&lt;void (), seastar::app_template::run(int, char**, std::function&lt;seastar::future&lt;int&gt; ()&gt;&amp;&amp;)::{lambda()#1}&gt;::_M_invoke(std::_Any_data const&amp;) at /usr/include/c++/9/bits/std_function.h:300
+std::function&lt;void ()&gt;::operator()() const at /usr/include/c++/9/bits/std_function.h:690
+seastar::apply_helper&lt;std::function&lt;void ()&gt;&amp;, std::tuple&lt;&gt;&amp;&amp;, std::integer_sequence&lt;unsigned long&gt; &gt;::apply(std::function&lt;void ()&gt;&amp;, std::tuple&lt;&gt;&amp;&amp;) at include/seastar/core/apply.hh:36
+auto seastar::apply&lt;std::function&lt;void ()&gt;&amp;&gt;(std::function&lt;void ()&gt;&amp;, std::tuple&lt;&gt;&amp;&amp;) at include/seastar/core/apply.hh:44
+seastar::future&lt;&gt; seastar::futurize&lt;void&gt;::apply&lt;std::function&lt;void ()&gt;&amp;&gt;(std::function&lt;void ()&gt;&amp;, std::tuple&lt;&gt;&amp;&amp;) at include/seastar/core/future.hh:1634
+auto seastar::futurize_apply&lt;std::function&lt;void ()&gt;&amp;&gt;(std::function&lt;void ()&gt;&amp;, std::tuple&lt;&gt;&amp;&amp;) at include/seastar/core/future.hh:1766
+seastar::future&lt;&gt;::then&lt;std::function&lt;void ()&gt;, seastar::future&lt;&gt; &gt;(std::function&lt;void ()&gt;&amp;&amp;)::{lambda()#1}::operator()() at include/seastar/core/future.hh:1191
+seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;::direct_vtable_for&lt;seastar::future&lt;&gt;::then&lt;std::function&lt;void ()&gt;, seastar::future&lt;&gt; &gt;(std::function&lt;void ()&gt;&amp;&amp;)::{lambda()#1}&gt;::call(seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt; const*) at include/seastar/util/noncopyable_function.hh:101
+seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;::operator()() const at include/seastar/util/noncopyable_function.hh:184
+seastar::apply_helper&lt;seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;, std::tuple&lt;&gt;&amp;&amp;, std::integer_sequence&lt;unsigned long&gt; &gt;::apply(seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;&amp;&amp;, std::tuple&lt;&gt;&amp;&amp;) at include/seastar/core/apply.hh:36
+auto seastar::apply&lt;seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;&gt;(seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;&amp;&amp;, std::tuple&lt;&gt;&amp;&amp;) at include/seastar/core/apply.hh:44
+seastar::future&lt;&gt; seastar::futurize&lt;seastar::future&lt;&gt; &gt;::apply&lt;seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;&gt;(seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;&amp;&amp;, std::tuple&lt;&gt;&amp;&amp;) at include/seastar/core/future.hh:1660
+seastar::future&lt;&gt;::then_impl_nrvo&lt;seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;, seastar::future&lt;&gt; &gt;(seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;&amp;&amp;)::{lambda()#1}::operator()() const::{lambda(seastar::internal::promise_base_with_type&lt;&gt;&amp;, seastar::future_state&lt;&gt;&amp;&amp;)#1}::operator()(seastar::internal::promise_base_with_type&lt;&gt;, seastar::future_state&lt;&gt;) at include/seastar/core/future.hh:1213
+seastar::continuation&lt;seastar::internal::promise_base_with_type&lt;&gt;, seastar::future&lt;&gt;::then_impl_nrvo&lt;seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;, seastar::future&lt;&gt; &gt;(seastar::noncopyable_function&lt;seastar::future&lt;&gt; ()&gt;&amp;&amp;)::{lambda()#1}::operator()() const::{lambda(seastar::internal::promise_base_with_type&lt;&gt;&amp;, seastar::future_state&lt;&gt;&amp;&amp;)#1}&gt;::run_and_dispose() at include/seastar/core/future.hh:509
+seastar::reactor::run_tasks(seastar::reactor::task_queue&amp;) at src/core/reactor.cc:2124
+seastar::reactor::run_some_tasks() at src/core/reactor.cc:2539 (discriminator 2)
+seastar::reactor::run() at src/core/reactor.cc:2694
+seastar::app_template::run_deprecated(int, char**, std::function&lt;void ()&gt;&amp;&amp;) at src/core/app-template.cc:199 (discriminator 1)
+seastar::app_template::run(int, char**, std::function&lt;seastar::future&lt;int&gt; ()&gt;&amp;&amp;) at src/core/app-template.cc:115 (discriminator 2)
+seastar::app_template::run(int, char**, std::function&lt;seastar::future&lt;&gt; ()&gt;&amp;&amp;) at src/core/app-template.cc:130 (discriminator 2)
+main at test.cc:19 (discriminator 1)
+__libc_start_main at /usr/src/debug/glibc-2.30-34-g994e529a37/csu/../csu/libc-start.c:308
+_start at ??:?</code></pre>
+<p>Most of the lines at the bottom of this backtrace are not interesting, and just showing the internal details of how Seastar ended up running the main function <code>f()</code>. The only interesting part is the <em>first</em> few lines:</p>
+<pre><code>seastar::report_failed_future(std::__exception_ptr::exception_ptr const&amp;) at src/core/future.cc:116
+seastar::future_state_base::~future_state_base() at include/seastar/core/future.hh:335
+seastar::future_state&lt;&gt;::~future_state() at include/seastar/core/future.hh:414
+ (inlined by) seastar::future&lt;&gt;::~future() at include/seastar/core/future.hh:990
+f() at test.cc:12</code></pre>
+<p>Here we see that the warning message was printed by the <code>seastar::report_failed_future()</code> function which was called when destroying a future (<code>future&lt;&gt;::~future</code>) that had not been handled. The future&#8217;s destructor was called in line 11 of our test code (<code>26.cc</code>), which is indeed the line where we called <code>g()</code> and ignored its result.<br>
+This backtrace gives us an accurate understanding of where our code destroyed an exceptional future without handling it first, which is usually helpful in solving these kinds of bugs. Note that this technique does not tell us where the exception was first created, nor what code passed around the exceptional future before it was destroyed - we just learn where the future was destroyed. To learn where the exception was originally thrown, see the next section:</p>
+<h2 data-number="22.2" id="finding-where-an-exception-was-thrown"><span class="header-section-number">22.2</span> Finding where an exception was thrown</h2>
+<p>Sometimes an application logs an exception, and we want to know where in the code the exception was originally thrown. Unlike languages like Java, C++ does not have a builtin method of attaching a backtrace to every exception. So Seastar provides functions which allow adding to an exception the backtrace recorded when throwing it.</p>
+<p>For example, in the following code we throw and catch an <code>std::runtime_error</code> normally:</p>
+<div class="sourceCode" id="cb106"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/future.hh&gt;</span></span>
+<span id="cb106-2"><a href="#cb106-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/util/log.hh&gt;</span></span>
+<span id="cb106-3"><a href="#cb106-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;exception&gt;</span></span>
+<span id="cb106-4"><a href="#cb106-4" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb106-5"><a href="#cb106-5" aria-hidden="true"></a></span>
+<span id="cb106-6"><a href="#cb106-6" aria-hidden="true"></a>seastar::future&lt;&gt; g() {</span>
+<span id="cb106-7"><a href="#cb106-7" aria-hidden="true"></a>    <span class="cf">return</span> seastar::make_exception_future&lt;&gt;(<span class="bu">std::</span>runtime_error(<span class="st">"hello"</span>));</span>
+<span id="cb106-8"><a href="#cb106-8" aria-hidden="true"></a>}</span>
+<span id="cb106-9"><a href="#cb106-9" aria-hidden="true"></a></span>
+<span id="cb106-10"><a href="#cb106-10" aria-hidden="true"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb106-11"><a href="#cb106-11" aria-hidden="true"></a>    <span class="cf">return</span> g().handle_exception([](<span class="bu">std::</span>exception_ptr e) {</span>
+<span id="cb106-12"><a href="#cb106-12" aria-hidden="true"></a>        <span class="bu">std::</span>cerr &lt;&lt; <span class="st">"Exception: "</span> &lt;&lt; e &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb106-13"><a href="#cb106-13" aria-hidden="true"></a>    });</span>
+<span id="cb106-14"><a href="#cb106-14" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The output is</p>
+<pre><code>Exception: std::runtime_error (hello)</code></pre>
+<p>From this output, we have no way of knowing that the exception was thrown in <code>g()</code>. We can solve this if we use <code>make_exception_future_with_backtrace</code> instead of <code>make_exception_future</code>:</p>
+<pre><code>#include &lt;util/backtrace.hh&gt;
+seastar::future&lt;&gt; g() {
+    return seastar::make_exception_future_with_backtrace&lt;&gt;(std::runtime_error("hello"));
+}</code></pre>
+<p>Now the output looks like</p>
+<pre><code>Exception: seastar::internal::backtraced&lt;std::runtime_error&gt; (hello Backtrace:   0x678bd3
+  0x677204
+  0x67736b
+  0x678cd5
+  0x4f923c
+  0x4f9c38
+  0x4ff4d0
+...
+)</code></pre>
+<p>Which, as above, can be converted to a human-readable backtrace by using the <code>seastar-addr2line</code> script.</p>
+<p>In addition to <code>seastar::make_exception_future_with_backtrace()</code>, Seastar also provides a function <code>throw_with_backtrace()</code>, to throw an exception instead of returning an exceptional future. For example:</p>
+<pre><code>    seastar::throw_with_backtrace&lt;std::runtime_error&gt;("hello");</code></pre>
+<p>In the current implementation, both <code>make_exception_future_with_backtrace</code> and <code>throw_with_backtrace</code> require that the original exception type (in the above example, <code>std::runtime_error</code>) is a subclass of the <code>std::exception</code> class. The original exception provides a <code>what()</code> string, and the wrapped exception adds the backtrace to this string, as demonstrated above. Moreover, the wrapped exception type is a <em>subclass</em> of the original exception type, which allows <code>catch(...)</code> code to continue filtering by the exception original type - despite the addition of the backtrace.</p>
+<h2 data-number="22.3" id="debugging-with-gdb"><span class="header-section-number">22.3</span> Debugging with gdb</h2>
+<pre><code>handle SIGUSR1 pass noprint
+handle SIGALRM pass noprint</code></pre>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="21.html">21 Command line options</a>. Next: <a href="23.html">23 Promise objects</a>.</div></body></html>

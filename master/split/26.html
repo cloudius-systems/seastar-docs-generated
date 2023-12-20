@@ -1,0 +1,255 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #c4a000; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #000000; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #000000; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #000000; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="25.html">25 Seastar::thread</a>.</div><h1 data-number="26" id="isolation-of-application-components"><span class="header-section-number">26</span> Isolation of application components</h1>
+<p>Seastar makes multi-tasking very easy - as easy as running an asynchronous function. It is therefore easy for a server to do many unrelated things in parallel. For example, a server might be in the process of answering 100 users&#8217; requests, and at the same time also be making progress on some long background operation.</p>
+<p>But in the above example, what percentage of the CPU and disk throughput will the background operation get? How long can one of the user&#8217;s requests be delayed by the background operation? Without the mechanisms we describe in this section, these questions cannot be reliably answered:</p>
+<ul>
+<li>The background operation may be a very &#8220;considerate&#8221; single fiber, i.e., run a very short continuation and then schedule the next continuation to run later. At each point the scheduler sees 100 request-handling continuations and just one of the background continuations ready to run. The background task gets around 1% of the CPU time, and users&#8217; requests are hardly delayed.</li>
+<li>On the other hand, the background operation may spawn 1,000 fibers in parallel and have 1,000 ready-to-run continuations at each time. The background operation will get about 90% of the runtime, and the continuation handling a user&#8217;s request may get stuck behind 1,000 of these background continuations, and experience huge latency.</li>
+</ul>
+<p>Complex Seastar applications often have different components which run in parallel and have different performance objectives. In the above example we saw two components - user requests and the background operation. The first goal of the mechanisms we describe in this section is to <em>isolate</em> the performance of each component from the others; In other words, the throughput and latency of one component should not depend on decisions that another component makes - e.g., how many continuations it runs in parallel. The second goal is to allow the application to <em>control</em> this isolation, e.g., in the above example allow the application to explicitly control the amount of CPU the background operation receives, so that it completes at a desired pace.</p>
+<p>In the above examples we used CPU time as the limited resource that the different components need to share effectively. As we show later, another important shared resource is disk I/O.</p>
+<h2 data-number="26.1" id="scheduling-groups-cpu-scheduler"><span class="header-section-number">26.1</span> Scheduling groups (CPU scheduler)</h2>
+<p>Consider the following asynchronous function <code>loop()</code>, which loops until some shared variable <code>stop</code> becomes true. It keeps a <code>counter</code> of the number of iterations until stopping, and returns this counter when finally stopping.</p>
+<div class="sourceCode" id="cb122"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb122-1"><a href="#cb122-1" aria-hidden="true"></a>seastar::future&lt;<span class="dt">long</span>&gt; loop(<span class="dt">int</span> parallelism, <span class="dt">bool</span>&amp; stop) {</span>
+<span id="cb122-2"><a href="#cb122-2" aria-hidden="true"></a>    <span class="cf">return</span> seastar::do_with(<span class="dv">0</span><span class="bu">L</span>, [parallelism, &amp;stop] (<span class="dt">long</span>&amp; counter) {</span>
+<span id="cb122-3"><a href="#cb122-3" aria-hidden="true"></a>        <span class="cf">return</span> seastar::parallel_for_each(<span class="ex">boost::</span>irange&lt;<span class="dt">unsigned</span>&gt;(<span class="dv">0</span>, parallelism),</span>
+<span id="cb122-4"><a href="#cb122-4" aria-hidden="true"></a>            [&amp;stop, &amp;counter]  (<span class="dt">unsigned</span> c) {</span>
+<span id="cb122-5"><a href="#cb122-5" aria-hidden="true"></a>                <span class="cf">return</span> seastar::do_until([&amp;stop] { <span class="cf">return</span> stop; }, [&amp;counter] {</span>
+<span id="cb122-6"><a href="#cb122-6" aria-hidden="true"></a>                    ++counter;</span>
+<span id="cb122-7"><a href="#cb122-7" aria-hidden="true"></a>                    <span class="cf">return</span> seastar::make_ready_future&lt;&gt;();</span>
+<span id="cb122-8"><a href="#cb122-8" aria-hidden="true"></a>                });</span>
+<span id="cb122-9"><a href="#cb122-9" aria-hidden="true"></a>            }).then([&amp;counter] { <span class="cf">return</span> counter; });</span>
+<span id="cb122-10"><a href="#cb122-10" aria-hidden="true"></a>    });</span>
+<span id="cb122-11"><a href="#cb122-11" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The <code>parallelism</code> parameter determines the parallelism of the silly counting operation: <code>parallelism=1</code> means we have just one loop incrementing the counter; <code>parallelism=10</code> means we start 10 loops in parallel all incrementing the same counter.</p>
+<p>What happens if we start two <code>loop()</code> calls in parallel and let them run for 10 seconds?</p>
+<div class="sourceCode" id="cb123"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb123-1"><a href="#cb123-1" aria-hidden="true"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb123-2"><a href="#cb123-2" aria-hidden="true"></a>    <span class="cf">return</span> seastar::do_with(<span class="kw">false</span>, [] (<span class="dt">bool</span>&amp; stop) {</span>
+<span id="cb123-3"><a href="#cb123-3" aria-hidden="true"></a>        seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">10</span>)).then([&amp;stop] {</span>
+<span id="cb123-4"><a href="#cb123-4" aria-hidden="true"></a>            stop = <span class="kw">true</span>;</span>
+<span id="cb123-5"><a href="#cb123-5" aria-hidden="true"></a>        });</span>
+<span id="cb123-6"><a href="#cb123-6" aria-hidden="true"></a>        <span class="cf">return</span> seastar::when_all_succeed(loop(<span class="dv">1</span>, stop), loop(<span class="dv">1</span>, stop)).then_unpack(</span>
+<span id="cb123-7"><a href="#cb123-7" aria-hidden="true"></a>            [] (<span class="dt">long</span> n1, <span class="dt">long</span> n2) {</span>
+<span id="cb123-8"><a href="#cb123-8" aria-hidden="true"></a>                <span class="bu">std::</span>cout &lt;&lt; <span class="st">"Counters: "</span> &lt;&lt; n1 &lt;&lt; <span class="st">", "</span> &lt;&lt; n2 &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb123-9"><a href="#cb123-9" aria-hidden="true"></a>            });</span>
+<span id="cb123-10"><a href="#cb123-10" aria-hidden="true"></a>    });</span>
+<span id="cb123-11"><a href="#cb123-11" aria-hidden="true"></a>}</span></code></pre></div>
+<p>It turns out that if the two <code>loop()</code> calls had the same parallelism <code>1</code>, we get roughly the same amount of work from both of them:</p>
+<pre><code>Counters: 3'559'635'758, 3'254'521'376</code></pre>
+<p>But if for example we ran a <code>loop(1)</code> in parallel with a <code>loop(10)</code>, the result is that the <code>loop(10)</code> gets 10 times more work done:</p>
+<pre><code>Counters: 629'482'397, 6'320'167'297</code></pre>
+<p>Why does the amount of work that loop(1) can do in ten seconds depends on the parallelism chosen by its competitor, and how can we solve this?</p>
+<p>The reason this happens is as follows: When a future resolves and a continuation was linked to it, this continuation becomes ready to run. By default, Seastar&#8217;s scheduler keeps a single list of ready-to-run continuations (in each shard, of course), and runs the continuations at the same order they became ready to run. In the above example, <code>loop(1)</code> always has one ready-to-run continuation, but <code>loop(10)</code>, which runs 10 loops in parallel, always has ten ready-to-run continuations. So for every continuation of <code>loop(1)</code>, Seastar&#8217;s default scheduler will run 10 continuations of <code>loop(10)</code>, which is why loop(10) gets 10 times more work done.</p>
+<p>To solve this, Seastar allows an application to define separate components known as <strong>scheduling groups</strong>, which each has a separate list of ready-to-run continuations. Each scheduling group gets to run its own continuations on a desired percentage of the CPU time, but the number of runnable continuations in one scheduling group does not affect the amount of CPU that another scheduling group gets. Let&#8217;s look at how this is done:</p>
+<p>A scheduling group is defined by a value of type <code>scheduling_group</code>. This value is opaque, but internally it is a small integer (similar to a process ID in Linux). We use the <code>seastar::with_scheduling_group()</code> function to run code in the desired scheduling group:</p>
+<div class="sourceCode" id="cb126"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true"></a>seastar::future&lt;<span class="dt">long</span>&gt;</span>
+<span id="cb126-2"><a href="#cb126-2" aria-hidden="true"></a>loop_in_sg(<span class="dt">int</span> parallelism, <span class="dt">bool</span>&amp; stop, seastar::scheduling_group sg) {</span>
+<span id="cb126-3"><a href="#cb126-3" aria-hidden="true"></a>    <span class="cf">return</span> seastar::with_scheduling_group(sg, [parallelism, &amp;stop] {</span>
+<span id="cb126-4"><a href="#cb126-4" aria-hidden="true"></a>        <span class="cf">return</span> loop(parallelism, stop);</span>
+<span id="cb126-5"><a href="#cb126-5" aria-hidden="true"></a>    });</span>
+<span id="cb126-6"><a href="#cb126-6" aria-hidden="true"></a>}</span></code></pre></div>
+<p>TODO: explain what <code>with_scheduling_group</code> group really does, how the group is &#8220;inherited&#8221; to the continuations started inside it.</p>
+<p>Now let&#8217;s create two scheduling groups, and run <code>loop(1)</code> in the first scheduling group and <code>loop(10)</code> in the second scheduling group:</p>
+<div class="sourceCode" id="cb127"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb127-1"><a href="#cb127-1" aria-hidden="true"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb127-2"><a href="#cb127-2" aria-hidden="true"></a>    <span class="cf">return</span> seastar::when_all_succeed(</span>
+<span id="cb127-3"><a href="#cb127-3" aria-hidden="true"></a>            seastar::create_scheduling_group(<span class="st">"loop1"</span>, <span class="dv">100</span>),</span>
+<span id="cb127-4"><a href="#cb127-4" aria-hidden="true"></a>            seastar::create_scheduling_group(<span class="st">"loop2"</span>, <span class="dv">100</span>)).then_unpack(</span>
+<span id="cb127-5"><a href="#cb127-5" aria-hidden="true"></a>        [] (seastar::scheduling_group sg1, seastar::scheduling_group sg2) {</span>
+<span id="cb127-6"><a href="#cb127-6" aria-hidden="true"></a>        <span class="cf">return</span> seastar::do_with(<span class="kw">false</span>, [sg1, sg2] (<span class="dt">bool</span>&amp; stop) {</span>
+<span id="cb127-7"><a href="#cb127-7" aria-hidden="true"></a>            seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">10</span>)).then([&amp;stop] {</span>
+<span id="cb127-8"><a href="#cb127-8" aria-hidden="true"></a>                stop = <span class="kw">true</span>;</span>
+<span id="cb127-9"><a href="#cb127-9" aria-hidden="true"></a>            });</span>
+<span id="cb127-10"><a href="#cb127-10" aria-hidden="true"></a>            <span class="cf">return</span> seastar::when_all_succeed(loop_in_sg(<span class="dv">1</span>, stop, sg1), loop_in_sg(<span class="dv">10</span>, stop, sg2)).then_unpack(</span>
+<span id="cb127-11"><a href="#cb127-11" aria-hidden="true"></a>                [] (<span class="dt">long</span> n1, <span class="dt">long</span> n2) {</span>
+<span id="cb127-12"><a href="#cb127-12" aria-hidden="true"></a>                    <span class="bu">std::</span>cout &lt;&lt; <span class="st">"Counters: "</span> &lt;&lt; n1 &lt;&lt; <span class="st">", "</span> &lt;&lt; n2 &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb127-13"><a href="#cb127-13" aria-hidden="true"></a>                });</span>
+<span id="cb127-14"><a href="#cb127-14" aria-hidden="true"></a>        });</span>
+<span id="cb127-15"><a href="#cb127-15" aria-hidden="true"></a>    });</span>
+<span id="cb127-16"><a href="#cb127-16" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Here we created two scheduling groups, <code>sg1</code> and <code>sg2</code>. Each scheduling group has an arbitrary name (which is used for diagnostic purposes only), and a number of <em>shares</em>, a number traditionally between 1 and 1000: If one scheduling group has twice the number of shares than a second scheduling group, it will get twice the amount of CPU time. In this example, we used the same number of shares (100) for both groups, so they should get equal CPU time.</p>
+<p>Unlike most objects in Seastar which are separate per shard, Seastar wants the identities and numbering of the scheduling groups to be the same on all shards, because it is important when invoking tasks on remote shards. For this reason, the function to create a scheduling group, <code>seastar::create_scheduling_group()</code>, is an asynchronous function returning a <code>future&lt;scheduling_group&gt;</code>.</p>
+<p>Running the above example, with both scheduling group set up with the same number of shares (100), indeed results in both scheduling groups getting the same amount of CPU time:</p>
+<pre><code>Counters: 3'353'900'256, 3'350'871'461</code></pre>
+<p>Note how now both loops got the same amount of work done - despite one loop having 10 times the parallelism of the second loop.</p>
+<p>If we change the definition of the second scheduling group to have 200 shares, twice the number of shares of the first scheduling group, we&#8217;ll see the second scheduling group getting twice the amount of CPU time:</p>
+<pre><code>Counters: 2'273'783'385, 4'549'995'716</code></pre>
+<h2 data-number="26.2" id="latency"><span class="header-section-number">26.2</span> Latency</h2>
+<p>TODO: Task quota, preempt, loops with built-in preemption check, etc.</p>
+<h2 data-number="26.3" id="disk-io-scheduler"><span class="header-section-number">26.3</span> Disk I/O scheduler</h2>
+<p>TODO</p>
+<h2 data-number="26.4" id="network-scheduler"><span class="header-section-number">26.4</span> Network scheduler</h2>
+<p>TODO: Say that not yet available. Give example of potential problem - e.g., sharing a slow WAN link.</p>
+<h2 data-number="26.5" id="controllers"><span class="header-section-number">26.5</span> Controllers</h2>
+<p>TODO: Talk about how to dynamically change the number of shares, and why.</p>
+<h2 data-number="26.6" id="multi-tenancy"><span class="header-section-number">26.6</span> Multi-tenancy</h2>
+<p>TODO</p>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="25.html">25 Seastar::thread</a>.</div></body></html>

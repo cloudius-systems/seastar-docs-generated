@@ -1,0 +1,312 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #c4a000; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #000000; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #000000; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #000000; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="17.html">17 More about Seastar&#8217;s event loop</a>. Next: <a href="19.html">19 Sharded services</a>.</div><h1 data-number="18" id="introducing-seastars-network-stack"><span class="header-section-number">18</span> Introducing Seastar&#8217;s network stack</h1>
+<p>TODO: Mention the two modes of operation: Posix and native (i.e., take a L2 (Ethernet) interface (vhost or dpdk) and on top of it we built (in Seastar itself) an L3 interface (TCP/IP)).</p>
+<p>For optimal performance, Seastar&#8217;s network stack is sharded just like Seastar applications are: each shard (thread) takes responsibility for a different subset of the connections. Each incoming connection is directed to one of the threads, and after a connection is established, it continues to be handled on the same thread.</p>
+<p>In the examples we saw earlier, <code>main()</code> ran our function <code>f()</code> only once, on the first thread. Unless the server is run with the <code>"-c1"</code> option (one thread only), this will mean that any connection arriving to a different thread will not be handled. So in all the examples below, we will need to run the same service loop on all cores. We can easily do this with the <code>smp::submit_to</code> function:</p>
+<div class="sourceCode" id="cb88"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true"></a>seastar::future&lt;&gt; service_loop();</span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true"></a></span>
+<span id="cb88-3"><a href="#cb88-3" aria-hidden="true"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb88-4"><a href="#cb88-4" aria-hidden="true"></a>    <span class="cf">return</span> seastar::parallel_for_each(<span class="ex">boost::</span>irange&lt;<span class="dt">unsigned</span>&gt;(<span class="dv">0</span>, seastar::smp::count),</span>
+<span id="cb88-5"><a href="#cb88-5" aria-hidden="true"></a>            [] (<span class="dt">unsigned</span> c) {</span>
+<span id="cb88-6"><a href="#cb88-6" aria-hidden="true"></a>        <span class="cf">return</span> seastar::smp::submit_to(c, service_loop);</span>
+<span id="cb88-7"><a href="#cb88-7" aria-hidden="true"></a>    });</span>
+<span id="cb88-8"><a href="#cb88-8" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Here we ask each of Seastar cores (from 0 to <code>smp::count</code>-1) to run the same function <code>service_loop()</code>. Each of these invocations returns a future, and <code>f()</code> will return when all of them have returned (in the examples below, they will never return - we will discuss shutting down services in later sections).</p>
+<p>We begin with a simple example of a TCP network server written in Seastar. This server repeatedly accepts connections on TCP port 1234, and returns an empty response:</p>
+<div class="sourceCode" id="cb89"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/seastar.hh&gt;</span></span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/reactor.hh&gt;</span></span>
+<span id="cb89-3"><a href="#cb89-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/future-util.hh&gt;</span></span>
+<span id="cb89-4"><a href="#cb89-4" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/net/api.hh&gt;</span></span>
+<span id="cb89-5"><a href="#cb89-5" aria-hidden="true"></a></span>
+<span id="cb89-6"><a href="#cb89-6" aria-hidden="true"></a>seastar::future&lt;&gt; service_loop() {</span>
+<span id="cb89-7"><a href="#cb89-7" aria-hidden="true"></a>    <span class="cf">return</span> seastar::do_with(seastar::listen(seastar::make_ipv4_address({<span class="dv">1234</span>})),</span>
+<span id="cb89-8"><a href="#cb89-8" aria-hidden="true"></a>            [] (<span class="kw">auto</span>&amp; listener) {</span>
+<span id="cb89-9"><a href="#cb89-9" aria-hidden="true"></a>        <span class="cf">return</span> seastar::keep_doing([&amp;listener] () {</span>
+<span id="cb89-10"><a href="#cb89-10" aria-hidden="true"></a>            <span class="cf">return</span> listener.accept().then(</span>
+<span id="cb89-11"><a href="#cb89-11" aria-hidden="true"></a>                [] (seastar::accept_result res) {</span>
+<span id="cb89-12"><a href="#cb89-12" aria-hidden="true"></a>                    <span class="bu">std::</span>cout &lt;&lt; <span class="st">"Accepted connection from "</span> &lt;&lt; res.remote_address &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb89-13"><a href="#cb89-13" aria-hidden="true"></a>            });</span>
+<span id="cb89-14"><a href="#cb89-14" aria-hidden="true"></a>        });</span>
+<span id="cb89-15"><a href="#cb89-15" aria-hidden="true"></a>    });</span>
+<span id="cb89-16"><a href="#cb89-16" aria-hidden="true"></a>}</span></code></pre></div>
+<p>This code works as follows:</p>
+<ol type="1">
+<li>The <code>listen()</code> call creates a <code>server_socket</code> object, <code>listener</code>, which listens on TCP port 1234 (on any network interface).</li>
+<li>We use <code>do_with()</code> to ensure that the listener socket lives throughout the loop.</li>
+<li>To handle one connection, we call <code>listener</code>&#8217;s <code>accept()</code> method. This method returns a <code>future&lt;accept_result&gt;</code>, i.e., is eventually resolved with an incoming TCP connection from a client (<code>accept_result.connection</code>) and the client&#8217;s IP address and port (<code>accept_result.remote_address</code>).</li>
+<li>To repeatedly accept new connections, we use the <code>keep_doing()</code> loop idiom. <code>keep_doing()</code> runs its lambda parameter over and over, starting the next iteration as soon as the future returned by the previous iteration completes. The iterations only stop if an exception is encountered. The future returned by <code>keep_doing()</code> itself completes only when the iteration stops (i.e., only on exception).</li>
+</ol>
+<p>Output from this server looks like the following example:</p>
+<pre><code>$ ./a.out
+Accepted connection from 127.0.0.1:47578
+Accepted connection from 127.0.0.1:47582
+...</code></pre>
+<p>If you run the above example server immediately after killing the previous server, it often fails to start again, complaining that:</p>
+<pre><code>$ ./a.out
+program failed with uncaught exception: bind: Address already in use</code></pre>
+<p>This happens because by default, Seastar refuses to reuse the local port if there are any vestiges of old connections using that port. In our silly server, because the server is the side which first closes the connection, each connection lingers for a while in the &#8220;<code>TIME_WAIT</code>&#8221; state after being closed, and these prevent <code>listen()</code> on the same port from succeeding. Luckily, we can give listen an option to work despite these remaining <code>TIME_WAIT</code>. This option is analogous to <code>socket(7)</code>&#8217;s <code>SO_REUSEADDR</code> option:</p>
+<div class="sourceCode" id="cb92"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true"></a>    seastar::listen_options lo;</span>
+<span id="cb92-2"><a href="#cb92-2" aria-hidden="true"></a>    lo.reuse_address = <span class="kw">true</span>;</span>
+<span id="cb92-3"><a href="#cb92-3" aria-hidden="true"></a>    <span class="cf">return</span> seastar::do_with(seastar::listen(seastar::make_ipv4_address({<span class="dv">1234</span>}), lo),</span></code></pre></div>
+<p>Most servers will always turn on this <code>reuse_address</code> listen option. Stevens&#8217; book &#8220;Unix Network Programming&#8221; even says that &#8220;All TCP servers should specify this socket option to allow the server to be restarted&#8221;. Therefore in the future Seastar should probably default to this option being on &#8212; even if for historic reasons this is not the default in Linux&#8217;s socket API.</p>
+<p>Let&#8217;s advance our example server by outputting some canned response to each connection, instead of closing each connection immediately with an empty reply.</p>
+<div class="sourceCode" id="cb93"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/seastar.hh&gt;</span></span>
+<span id="cb93-2"><a href="#cb93-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/reactor.hh&gt;</span></span>
+<span id="cb93-3"><a href="#cb93-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/future-util.hh&gt;</span></span>
+<span id="cb93-4"><a href="#cb93-4" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/net/api.hh&gt;</span></span>
+<span id="cb93-5"><a href="#cb93-5" aria-hidden="true"></a></span>
+<span id="cb93-6"><a href="#cb93-6" aria-hidden="true"></a><span class="at">const</span> <span class="dt">char</span>* canned_response = <span class="st">"Seastar is the future!</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb93-7"><a href="#cb93-7" aria-hidden="true"></a></span>
+<span id="cb93-8"><a href="#cb93-8" aria-hidden="true"></a>seastar::future&lt;&gt; service_loop() {</span>
+<span id="cb93-9"><a href="#cb93-9" aria-hidden="true"></a>    seastar::listen_options lo;</span>
+<span id="cb93-10"><a href="#cb93-10" aria-hidden="true"></a>    lo.reuse_address = <span class="kw">true</span>;</span>
+<span id="cb93-11"><a href="#cb93-11" aria-hidden="true"></a>    <span class="cf">return</span> seastar::do_with(seastar::listen(seastar::make_ipv4_address({<span class="dv">1234</span>}), lo),</span>
+<span id="cb93-12"><a href="#cb93-12" aria-hidden="true"></a>            [] (<span class="kw">auto</span>&amp; listener) {</span>
+<span id="cb93-13"><a href="#cb93-13" aria-hidden="true"></a>        <span class="cf">return</span> seastar::keep_doing([&amp;listener] () {</span>
+<span id="cb93-14"><a href="#cb93-14" aria-hidden="true"></a>            <span class="cf">return</span> listener.accept().then(</span>
+<span id="cb93-15"><a href="#cb93-15" aria-hidden="true"></a>                    [] (seastar::accept_result res) {</span>
+<span id="cb93-16"><a href="#cb93-16" aria-hidden="true"></a>                <span class="kw">auto</span> s = <span class="bu">std::</span>move(res.connection);</span>
+<span id="cb93-17"><a href="#cb93-17" aria-hidden="true"></a>                <span class="kw">auto</span> out = s.output();</span>
+<span id="cb93-18"><a href="#cb93-18" aria-hidden="true"></a>                <span class="cf">return</span> seastar::do_with(<span class="bu">std::</span>move(s), <span class="bu">std::</span>move(out),</span>
+<span id="cb93-19"><a href="#cb93-19" aria-hidden="true"></a>                        [] (<span class="kw">auto</span>&amp; s, <span class="kw">auto</span>&amp; out) {</span>
+<span id="cb93-20"><a href="#cb93-20" aria-hidden="true"></a>                    <span class="cf">return</span> out.write(canned_response).then([&amp;out] {</span>
+<span id="cb93-21"><a href="#cb93-21" aria-hidden="true"></a>                        <span class="cf">return</span> out.close();</span>
+<span id="cb93-22"><a href="#cb93-22" aria-hidden="true"></a>                    });</span>
+<span id="cb93-23"><a href="#cb93-23" aria-hidden="true"></a>                });</span>
+<span id="cb93-24"><a href="#cb93-24" aria-hidden="true"></a>            });</span>
+<span id="cb93-25"><a href="#cb93-25" aria-hidden="true"></a>        });</span>
+<span id="cb93-26"><a href="#cb93-26" aria-hidden="true"></a>    });</span>
+<span id="cb93-27"><a href="#cb93-27" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The new part of this code begins by taking the <code>connected_socket</code>&#8217;s <code>output()</code>, which returns an <code>output_stream&lt;char&gt;</code> object. On this output stream <code>out</code> we can write our response using the <code>write()</code> method. The simple-looking <code>write()</code> operation is in fact a complex asynchronous operation behind the scenes, possibly causing multiple packets to be sent, retransmitted, etc., as needed. <code>write()</code> returns a future saying when it is ok to <code>write()</code> again to this output stream; This does not necessarily guarantee that the remote peer received all the data we sent it, but it guarantees that the output stream has enough buffer space (or in the TCP case, there is enough room in the TCP congestion window) to allow another write to begin.</p>
+<p>After <code>write()</code>ing the response to <code>out</code>, the example code calls <code>out.close()</code> and waits for the future it returns. This is necessary, because <code>write()</code> attempts to batch writes so might not have yet written anything to the TCP stack at this point, and only when close() concludes can we be sure that all the data we wrote to the output stream has actually reached the TCP stack &#8212; and only at this point we may finally dispose of the <code>out</code> and <code>s</code> objects.</p>
+<p>Indeed, this server returns the expected response:</p>
+<pre><code>$ telnet localhost 1234
+...
+Seastar is the future!
+Connection closed by foreign host.</code></pre>
+<p>In the above example we only saw writing to the socket. Real servers will also want to read from the socket. The <code>connected_socket</code>&#8217;s <code>input()</code> method returns an <code>input_stream&lt;char&gt;</code> object which can be used to read from the socket. The simplest way to read from this stream is using the <code>read()</code> method which returns a future <code>temporary_buffer&lt;char&gt;</code>, containing some more bytes read from the socket &#8212; or an empty buffer when the remote end shut down the connection.</p>
+<p><code>temporary_buffer&lt;char&gt;</code> is a convenient and safe way to pass around byte buffers that are only needed temporarily (e.g., while processing a request). As soon as this object goes out of scope (by normal return, or exception), the memory it holds gets automatically freed. Ownership of buffer can also be transferred by <code>std::move()</code>ing it. We&#8217;ll discuss <code>temporary_buffer</code> in more details in a later section.</p>
+<p>Let&#8217;s look at a simple example server involving both reads an writes. This is a simple echo server, as described in RFC 862: The server listens for connections from the client, and once a connection is established, any data received is simply sent back - until the client closes the connection.</p>
+<div class="sourceCode" id="cb95"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/seastar.hh&gt;</span></span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/reactor.hh&gt;</span></span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/future-util.hh&gt;</span></span>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/net/api.hh&gt;</span></span>
+<span id="cb95-5"><a href="#cb95-5" aria-hidden="true"></a></span>
+<span id="cb95-6"><a href="#cb95-6" aria-hidden="true"></a>seastar::future&lt;&gt; handle_connection(seastar::connected_socket s,</span>
+<span id="cb95-7"><a href="#cb95-7" aria-hidden="true"></a>                                    seastar::socket_address a) {</span>
+<span id="cb95-8"><a href="#cb95-8" aria-hidden="true"></a>    <span class="kw">auto</span> out = s.output();</span>
+<span id="cb95-9"><a href="#cb95-9" aria-hidden="true"></a>    <span class="kw">auto</span> in = s.input();</span>
+<span id="cb95-10"><a href="#cb95-10" aria-hidden="true"></a>    <span class="cf">return</span> do_with(<span class="bu">std::</span>move(s), <span class="bu">std::</span>move(out), <span class="bu">std::</span>move(in),</span>
+<span id="cb95-11"><a href="#cb95-11" aria-hidden="true"></a>            [] (<span class="kw">auto</span>&amp; s, <span class="kw">auto</span>&amp; out, <span class="kw">auto</span>&amp; in) {</span>
+<span id="cb95-12"><a href="#cb95-12" aria-hidden="true"></a>        <span class="cf">return</span> seastar::repeat([&amp;out, &amp;in] {</span>
+<span id="cb95-13"><a href="#cb95-13" aria-hidden="true"></a>            <span class="cf">return</span> in.read().then([&amp;out] (<span class="kw">auto</span> buf) {</span>
+<span id="cb95-14"><a href="#cb95-14" aria-hidden="true"></a>                <span class="cf">if</span> (buf) {</span>
+<span id="cb95-15"><a href="#cb95-15" aria-hidden="true"></a>                    <span class="cf">return</span> out.write(<span class="bu">std::</span>move(buf)).then([&amp;out] {</span>
+<span id="cb95-16"><a href="#cb95-16" aria-hidden="true"></a>                        <span class="cf">return</span> out.flush();</span>
+<span id="cb95-17"><a href="#cb95-17" aria-hidden="true"></a>                    }).then([] {</span>
+<span id="cb95-18"><a href="#cb95-18" aria-hidden="true"></a>                        <span class="cf">return</span> seastar::stop_iteration::no;</span>
+<span id="cb95-19"><a href="#cb95-19" aria-hidden="true"></a>                    });</span>
+<span id="cb95-20"><a href="#cb95-20" aria-hidden="true"></a>                } <span class="cf">else</span> {</span>
+<span id="cb95-21"><a href="#cb95-21" aria-hidden="true"></a>                    <span class="cf">return</span> seastar::make_ready_future&lt;seastar::stop_iteration&gt;(</span>
+<span id="cb95-22"><a href="#cb95-22" aria-hidden="true"></a>                            seastar::stop_iteration::yes);</span>
+<span id="cb95-23"><a href="#cb95-23" aria-hidden="true"></a>                }</span>
+<span id="cb95-24"><a href="#cb95-24" aria-hidden="true"></a>            });</span>
+<span id="cb95-25"><a href="#cb95-25" aria-hidden="true"></a>        }).then([&amp;out] {</span>
+<span id="cb95-26"><a href="#cb95-26" aria-hidden="true"></a>            <span class="cf">return</span> out.close();</span>
+<span id="cb95-27"><a href="#cb95-27" aria-hidden="true"></a>        });</span>
+<span id="cb95-28"><a href="#cb95-28" aria-hidden="true"></a>    });</span>
+<span id="cb95-29"><a href="#cb95-29" aria-hidden="true"></a>}</span>
+<span id="cb95-30"><a href="#cb95-30" aria-hidden="true"></a></span>
+<span id="cb95-31"><a href="#cb95-31" aria-hidden="true"></a>seastar::future&lt;&gt; service_loop_3() {</span>
+<span id="cb95-32"><a href="#cb95-32" aria-hidden="true"></a>    seastar::listen_options lo;</span>
+<span id="cb95-33"><a href="#cb95-33" aria-hidden="true"></a>    lo.reuse_address = <span class="kw">true</span>;</span>
+<span id="cb95-34"><a href="#cb95-34" aria-hidden="true"></a>    <span class="cf">return</span> seastar::do_with(seastar::listen(seastar::make_ipv4_address({<span class="dv">1234</span>}), lo),</span>
+<span id="cb95-35"><a href="#cb95-35" aria-hidden="true"></a>            [] (<span class="kw">auto</span>&amp; listener) {</span>
+<span id="cb95-36"><a href="#cb95-36" aria-hidden="true"></a>        <span class="cf">return</span> seastar::keep_doing([&amp;listener] () {</span>
+<span id="cb95-37"><a href="#cb95-37" aria-hidden="true"></a>            <span class="cf">return</span> listener.accept().then(</span>
+<span id="cb95-38"><a href="#cb95-38" aria-hidden="true"></a>                    [] (seastar::accept_result res) {</span>
+<span id="cb95-39"><a href="#cb95-39" aria-hidden="true"></a>                <span class="co">// Note we ignore, not return, the future returned by</span></span>
+<span id="cb95-40"><a href="#cb95-40" aria-hidden="true"></a>                <span class="co">// handle_connection(), so we do not wait for one</span></span>
+<span id="cb95-41"><a href="#cb95-41" aria-hidden="true"></a>                <span class="co">// connection to be handled before accepting the next one.</span></span>
+<span id="cb95-42"><a href="#cb95-42" aria-hidden="true"></a>                (<span class="dt">void</span>)handle_connection(<span class="bu">std::</span>move(res.connection), <span class="bu">std::</span>move(res.remote_address)).handle_exception(</span>
+<span id="cb95-43"><a href="#cb95-43" aria-hidden="true"></a>                        [] (<span class="bu">std::</span>exception_ptr ep) {</span>
+<span id="cb95-44"><a href="#cb95-44" aria-hidden="true"></a>                    fmt::print(stderr, <span class="st">"Could not handle connection: </span><span class="sc">{}\n</span><span class="st">"</span>, ep);</span>
+<span id="cb95-45"><a href="#cb95-45" aria-hidden="true"></a>                });</span>
+<span id="cb95-46"><a href="#cb95-46" aria-hidden="true"></a>            });</span>
+<span id="cb95-47"><a href="#cb95-47" aria-hidden="true"></a>        });</span>
+<span id="cb95-48"><a href="#cb95-48" aria-hidden="true"></a>    });</span>
+<span id="cb95-49"><a href="#cb95-49" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The main function <code>service_loop()</code> loops accepting new connections, and for each connection calls <code>handle_connection()</code> to handle this connection. Our <code>handle_connection()</code> returns a future saying when handling this connection completed, but importantly, we do <strong><em>not</em></strong> wait for this future: Remember that <code>keep_doing</code> will only start the next iteration when the future returned by the previous iteration is resolved. Because we want to allow parallel ongoing connections, we don&#8217;t want the next <code>accept()</code> to wait until the previously accepted connection was closed. So we call <code>handle_connection()</code> to start the handling of the connection, but return nothing from the continuation, which resolves that future immediately, so <code>keep_doing</code> will continue to the next <code>accept()</code>.</p>
+<p>This demonstrates how easy it is to run parallel <em>fibers</em> (chains of continuations) in Seastar - When a continuation runs an asynchronous function but ignores the future it returns, the asynchronous operation continues in parallel, but never waited for.</p>
+<p>It is often a mistake to silently ignore an exception, so if the future we&#8217;re ignoring might resolve with an except, it is recommended to handle this case, e.g.&#160;using a <code>handle_exception()</code> continuation. In our case, a failed connection is fine (e.g., the client might close its connection will we&#8217;re sending it output), so we did not bother to handle the exception.</p>
+<p>The <code>handle_connection()</code> function itself is straightforward &#8212; it repeatedly calls <code>read()</code> read on the input stream, to receive a <code>temporary_buffer</code> with some data, and then moves this temporary buffer into a <code>write()</code> call on the output stream. The buffer will eventually be freed, automatically, when the <code>write()</code> is done with it. When <code>read()</code> eventually returns an empty buffer signifying the end of input, we stop <code>repeat</code>&#8217;s iteration by returning a <code>stop_iteration::yes</code>.</p>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="17.html">17 More about Seastar&#8217;s event loop</a>. Next: <a href="19.html">19 Sharded services</a>.</div></body></html>

@@ -1,0 +1,248 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #c4a000; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #000000; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #000000; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #000000; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="24.html">24 Memory allocation in Seastar</a>. Next: <a href="26.html">26 Isolation of application components</a>.</div><h1 data-number="25" id="seastarthread"><span class="header-section-number">25</span> Seastar::thread</h1>
+<p>Seastar&#8217;s programming model, using futures and continuations, is very powerful and efficient. However, as we&#8217;ve already seen in examples above, it is also relatively verbose: Every time that we need to wait before proceeding with a computation, we need to write another continuation. We also need to worry about passing the data between the different continuations (using techniques like those described in the <a href="8.html#lifetime-management">Lifetime management</a> section). Simple flow-control constructs such as loops also become more involved using continuations. For example, consider this simple classical synchronous code:</p>
+<div class="sourceCode" id="cb115"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb115-1"><a href="#cb115-1" aria-hidden="true"></a>    <span class="bu">std::</span>cout &lt;&lt; <span class="st">"Hi.</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb115-2"><a href="#cb115-2" aria-hidden="true"></a>    <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">1</span>; i &lt; <span class="dv">4</span>; i++) {</span>
+<span id="cb115-3"><a href="#cb115-3" aria-hidden="true"></a>        sleep(<span class="dv">1</span>);</span>
+<span id="cb115-4"><a href="#cb115-4" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb115-5"><a href="#cb115-5" aria-hidden="true"></a>    }</span></code></pre></div>
+<p>In Seastar, using futures and continuations, we need to write something like this:</p>
+<div class="sourceCode" id="cb116"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true"></a>    <span class="bu">std::</span>cout &lt;&lt; <span class="st">"Hi.</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb116-2"><a href="#cb116-2" aria-hidden="true"></a>    <span class="cf">return</span> seastar::do_for_each(<span class="ex">boost::</span>counting_iterator&lt;<span class="dt">int</span>&gt;(<span class="dv">1</span>),</span>
+<span id="cb116-3"><a href="#cb116-3" aria-hidden="true"></a>        <span class="ex">boost::</span>counting_iterator&lt;<span class="dt">int</span>&gt;(<span class="dv">4</span>), [] (<span class="dt">int</span> i) {</span>
+<span id="cb116-4"><a href="#cb116-4" aria-hidden="true"></a>        <span class="cf">return</span> seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">1</span>)).then([i] {</span>
+<span id="cb116-5"><a href="#cb116-5" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb116-6"><a href="#cb116-6" aria-hidden="true"></a>        });</span>
+<span id="cb116-7"><a href="#cb116-7" aria-hidden="true"></a>    });</span></code></pre></div>
+<p>But Seastar also allows, via <code>seastar::thread</code>, to write code which looks more like synchronous code. A <code>seastar::thread</code> provides an execution environment where blocking is tolerated; You can issue an asynchronous function, and wait for it in the same function, rather then establishing a callback to be called with <code>future&lt;&gt;::then()</code>:</p>
+<div class="sourceCode" id="cb117"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb117-1"><a href="#cb117-1" aria-hidden="true"></a>    seastar::thread th([] {</span>
+<span id="cb117-2"><a href="#cb117-2" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">"Hi.</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb117-3"><a href="#cb117-3" aria-hidden="true"></a>        <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">1</span>; i &lt; <span class="dv">4</span>; i++) {</span>
+<span id="cb117-4"><a href="#cb117-4" aria-hidden="true"></a>            seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">1</span>)).get();</span>
+<span id="cb117-5"><a href="#cb117-5" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb117-6"><a href="#cb117-6" aria-hidden="true"></a>        }</span>
+<span id="cb117-7"><a href="#cb117-7" aria-hidden="true"></a>    });</span></code></pre></div>
+<p>A <code>seastar::thread</code> is <strong>not</strong> a separate operating system thread. It still uses continuations, which are scheduled on Seastar&#8217;s single thread (per core). It works as follows:</p>
+<p>The <code>seastar::thread</code> allocates a 128KB stack, and runs the given function until the it <em>blocks</em> on the call to a future&#8217;s <code>get()</code> method. Outside a <code>seastar::thread</code> context, <code>get()</code> may only be called on a future which is already available. But inside a thread, calling <code>get()</code> on a future which is not yet available stops running the thread function, and schedules a continuation for this future, which continues to run the thread&#8217;s function (on the same saved stack) when the future becomes available.</p>
+<p>Just like normal Seastar continuations, <code>seastar::thread</code>s always run on the same core they were launched on. They are also cooperative: they are never preempted except when <code>seastar::future::get()</code> blocks or on explicit calls to <code>seastar::thread::yield()</code>.</p>
+<p>It is worth reiterating that a <code>seastar::thread</code> is not a POSIX thread, and it can only block on Seastar futures, not on blocking system calls. The above example used <code>seastar::sleep()</code>, not the <code>sleep()</code> system call. The <code>seastar::thread</code>&#8217;s function can throw and catch exceptions normally. Remember that <code>get()</code> will throw an exception if the future resolves with an exception.</p>
+<p>In addition to <code>seastar::future::get()</code>, we also have <code>seastar::future::wait()</code> to wait <em>without</em> fetching the future&#8217;s result. This can sometimes be useful when you want to avoid throwing an exception when the future failed (as <code>get()</code> does). For example:</p>
+<div class="sourceCode" id="cb118"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true"></a>    future&lt;<span class="dt">char</span>&gt; getchar();</span>
+<span id="cb118-2"><a href="#cb118-2" aria-hidden="true"></a>    <span class="dt">int</span> try_getchar() <span class="kw">noexcept</span> { <span class="co">// run this in seastar::thread context</span></span>
+<span id="cb118-3"><a href="#cb118-3" aria-hidden="true"></a>        future fut = get_char();</span>
+<span id="cb118-4"><a href="#cb118-4" aria-hidden="true"></a>        fut.wait();</span>
+<span id="cb118-5"><a href="#cb118-5" aria-hidden="true"></a>        <span class="cf">if</span> (fut.failed()) {</span>
+<span id="cb118-6"><a href="#cb118-6" aria-hidden="true"></a>            <span class="cf">return</span> -<span class="dv">1</span>;</span>
+<span id="cb118-7"><a href="#cb118-7" aria-hidden="true"></a>        } <span class="cf">else</span> {</span>
+<span id="cb118-8"><a href="#cb118-8" aria-hidden="true"></a>            <span class="co">// Here we already know that get() will return immediately,</span></span>
+<span id="cb118-9"><a href="#cb118-9" aria-hidden="true"></a>            <span class="co">// and will not throw.</span></span>
+<span id="cb118-10"><a href="#cb118-10" aria-hidden="true"></a>            <span class="cf">return</span> fut.get();</span>
+<span id="cb118-11"><a href="#cb118-11" aria-hidden="true"></a>        }</span>
+<span id="cb118-12"><a href="#cb118-12" aria-hidden="true"></a>    }</span></code></pre></div>
+<h2 data-number="25.1" id="starting-and-ending-a-seastarthread"><span class="header-section-number">25.1</span> Starting and ending a seastar::thread</h2>
+<p>After we created a <code>seastar::thread</code> object, we need wait until it ends, using its <code>join()</code> method. We also need to keep that object alive until <code>join()</code> completes. A complete example using <code>seastar::thread</code> will therefore look like this:</p>
+<div class="sourceCode" id="cb119"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb119-1"><a href="#cb119-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/sleep.hh&gt;</span></span>
+<span id="cb119-2"><a href="#cb119-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/thread.hh&gt;</span></span>
+<span id="cb119-3"><a href="#cb119-3" aria-hidden="true"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb119-4"><a href="#cb119-4" aria-hidden="true"></a>    seastar::thread th([] {</span>
+<span id="cb119-5"><a href="#cb119-5" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">"Hi.</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb119-6"><a href="#cb119-6" aria-hidden="true"></a>        <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">1</span>; i &lt; <span class="dv">4</span>; i++) {</span>
+<span id="cb119-7"><a href="#cb119-7" aria-hidden="true"></a>            seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">1</span>)).get();</span>
+<span id="cb119-8"><a href="#cb119-8" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb119-9"><a href="#cb119-9" aria-hidden="true"></a>        }</span>
+<span id="cb119-10"><a href="#cb119-10" aria-hidden="true"></a>    });</span>
+<span id="cb119-11"><a href="#cb119-11" aria-hidden="true"></a>    <span class="cf">return</span> do_with(<span class="bu">std::</span>move(th), [] (<span class="kw">auto</span>&amp; th) {</span>
+<span id="cb119-12"><a href="#cb119-12" aria-hidden="true"></a>        <span class="cf">return</span> th.join();</span>
+<span id="cb119-13"><a href="#cb119-13" aria-hidden="true"></a>    });</span>
+<span id="cb119-14"><a href="#cb119-14" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The <code>seastar::async()</code> function provides a convenient shortcut for creating a <code>seastar::thread</code> and returning a future which resolves when the thread completes:</p>
+<div class="sourceCode" id="cb120"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/sleep.hh&gt;</span></span>
+<span id="cb120-2"><a href="#cb120-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/thread.hh&gt;</span></span>
+<span id="cb120-3"><a href="#cb120-3" aria-hidden="true"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb120-4"><a href="#cb120-4" aria-hidden="true"></a>    <span class="cf">return</span> seastar::async([] {</span>
+<span id="cb120-5"><a href="#cb120-5" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">"Hi.</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb120-6"><a href="#cb120-6" aria-hidden="true"></a>        <span class="cf">for</span> (<span class="dt">int</span> i = <span class="dv">1</span>; i &lt; <span class="dv">4</span>; i++) {</span>
+<span id="cb120-7"><a href="#cb120-7" aria-hidden="true"></a>            seastar::sleep(<span class="bu">std::</span>chrono<span class="bu">::</span>seconds(<span class="dv">1</span>)).get();</span>
+<span id="cb120-8"><a href="#cb120-8" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb120-9"><a href="#cb120-9" aria-hidden="true"></a>        }</span>
+<span id="cb120-10"><a href="#cb120-10" aria-hidden="true"></a>    });</span>
+<span id="cb120-11"><a href="#cb120-11" aria-hidden="true"></a>}</span></code></pre></div>
+<p><code>seastar::async()</code>&#8217;s lambda may return a value, and <code>seastar::async()</code> returns it when it completes. For example:</p>
+<div class="sourceCode" id="cb121"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb121-1"><a href="#cb121-1" aria-hidden="true"></a>seastar::future&lt;seastar::sstring&gt; read_file(sstring file_name) {</span>
+<span id="cb121-2"><a href="#cb121-2" aria-hidden="true"></a>    <span class="cf">return</span> seastar::async([file_name] () {  <span class="co">// lambda executed in a thread</span></span>
+<span id="cb121-3"><a href="#cb121-3" aria-hidden="true"></a>        file f = seastar::open_file_dma(file_name).get0();  <span class="co">// get0() call "blocks"</span></span>
+<span id="cb121-4"><a href="#cb121-4" aria-hidden="true"></a>        <span class="kw">auto</span> buf = f.dma_read(<span class="dv">0</span>, <span class="dv">512</span>).get0();  <span class="co">// "block" again</span></span>
+<span id="cb121-5"><a href="#cb121-5" aria-hidden="true"></a>        <span class="cf">return</span> seastar::sstring(buf.get(), buf.size());</span>
+<span id="cb121-6"><a href="#cb121-6" aria-hidden="true"></a>    });</span>
+<span id="cb121-7"><a href="#cb121-7" aria-hidden="true"></a>};</span></code></pre></div>
+<p>While <code>seastar::thread</code>s and <code>seastar::async()</code> make programming more convenient, they also add overhead beyond that of programming directly with continuations. Most notably, each <code>seastar::thread</code> requires additional memory for its stack. It is therefore not a good idea to use a <code>seastar::thread</code> to handle a highly concurrent operation. For example, if you need to handle 10,000 concurrent requests, do not use a <code>seastar::thread</code> to handle each &#8212; use futures and continuations. But if you are writing code where you know that only a few instances will ever run concurrently, e.g., a background cleanup operation in your application, <code>seastar::thread</code> is a good match. <code>seastar::thread</code> is also great for code which doesn&#8217;t care about performance &#8212; such as test code.</p>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="24.html">24 Memory allocation in Seastar</a>. Next: <a href="26.html">26 Isolation of application components</a>.</div></body></html>

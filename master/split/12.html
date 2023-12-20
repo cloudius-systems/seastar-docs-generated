@@ -1,0 +1,245 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #c4a000; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #000000; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #000000; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #000000; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="11.html">11 Loops</a>. Next: <a href="13.html">13 Semaphores</a>.</div><h1 data-number="12" id="when_all-waiting-for-multiple-futures"><span class="header-section-number">12</span> when_all: Waiting for multiple futures</h1>
+<p>Above we&#8217;ve seen <code>parallel_for_each()</code>, which starts a number of asynchronous operations, and then waits for all to complete. Seastar has another idiom, <code>when_all()</code>, for waiting for several already-existing futures to complete.</p>
+<p>The first variant of <code>when_all()</code> is variadic, i.e., the futures are given as separate parameters, the exact number of which is known at compile time. The individual futures may have different types. For example,</p>
+<div class="sourceCode" id="cb66"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/sleep.hh&gt;</span></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true"></a></span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true"></a>future&lt;&gt; f() {</span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true"></a>    <span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;</span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true"></a>    future&lt;<span class="dt">int</span>&gt; slow_two = sleep(<span class="dv">2</span><span class="bu">s</span>).then([] { <span class="cf">return</span> <span class="dv">2</span>; });</span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true"></a>    <span class="cf">return</span> when_all(sleep(<span class="dv">1</span><span class="bu">s</span>), <span class="bu">std::</span>move(slow_two), </span>
+<span id="cb66-7"><a href="#cb66-7" aria-hidden="true"></a>                    make_ready_future&lt;<span class="dt">double</span>&gt;(<span class="fl">3.5</span>)</span>
+<span id="cb66-8"><a href="#cb66-8" aria-hidden="true"></a>           ).discard_result();</span>
+<span id="cb66-9"><a href="#cb66-9" aria-hidden="true"></a>}</span></code></pre></div>
+<p>This starts three futures - one which sleeps for one second (and doesn&#8217;t return anything), one which sleeps for two seconds and returns the integer 2, and one which returns the double 3.5 immediately - and then waits for them. The <code>when_all()</code> function returns a future which resolves as soon as all three futures resolves, i.e., after two seconds. This future also has a value, which we shall explain below, but in this example, we simply waited for the future to resolve and discarded its value.</p>
+<p>Note that <code>when_all()</code> accept only rvalues, which can be temporaries (like the return value of an asynchronous function or <code>make_ready_future</code>) or an <code>std::move()</code>&#8217;ed variable holding a future.</p>
+<p>The future returned by <code>when_all()</code> resolves to a tuple of futures which are already resolved, and contain the results of the three input futures. Continuing the above example,</p>
+<div class="sourceCode" id="cb67"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true"></a>future&lt;&gt; f() {</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true"></a>    <span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;</span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true"></a>    future&lt;<span class="dt">int</span>&gt; slow_two = sleep(<span class="dv">2</span><span class="bu">s</span>).then([] { <span class="cf">return</span> <span class="dv">2</span>; });</span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true"></a>    <span class="cf">return</span> when_all(sleep(<span class="dv">1</span><span class="bu">s</span>), <span class="bu">std::</span>move(slow_two),</span>
+<span id="cb67-5"><a href="#cb67-5" aria-hidden="true"></a>                    make_ready_future&lt;<span class="dt">double</span>&gt;(<span class="fl">3.5</span>)</span>
+<span id="cb67-6"><a href="#cb67-6" aria-hidden="true"></a>           ).then([] (<span class="kw">auto</span> tup) {</span>
+<span id="cb67-7"><a href="#cb67-7" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>get&lt;<span class="dv">0</span>&gt;(tup).available() &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb67-8"><a href="#cb67-8" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>get&lt;<span class="dv">1</span>&gt;(tup).get0() &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb67-9"><a href="#cb67-9" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>get&lt;<span class="dv">2</span>&gt;(tup).get0() &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb67-10"><a href="#cb67-10" aria-hidden="true"></a>    });</span>
+<span id="cb67-11"><a href="#cb67-11" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The output of this program (which comes after two seconds) is <code>1, 2, 3.5</code>: the first future in the tuple is available (but has no value), the second has the integer value 2, and the third a double value 3.5 - as expected.</p>
+<p>One or more of the waited futures might resolve in an exception, but this does not change how <code>when_all()</code> works: It still waits for all the futures to resolve, each with either a value or an exception, and in the returned tuple some of the futures may contain an exception instead of a value. For example,</p>
+<div class="sourceCode" id="cb68"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true"></a>future&lt;&gt; f() {</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true"></a>    <span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;</span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true"></a>    future&lt;&gt; slow_success = sleep(<span class="dv">1</span><span class="bu">s</span>);</span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true"></a>    future&lt;&gt; slow_exception = sleep(<span class="dv">2</span><span class="bu">s</span>).then([] { <span class="cf">throw</span> <span class="dv">1</span>; });</span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true"></a>    <span class="cf">return</span> when_all(<span class="bu">std::</span>move(slow_success), <span class="bu">std::</span>move(slow_exception)</span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true"></a>           ).then([] (<span class="kw">auto</span> tup) {</span>
+<span id="cb68-7"><a href="#cb68-7" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>get&lt;<span class="dv">0</span>&gt;(tup).available() &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb68-8"><a href="#cb68-8" aria-hidden="true"></a>            <span class="bu">std::</span>cout &lt;&lt; <span class="bu">std::</span>get&lt;<span class="dv">1</span>&gt;(tup).failed() &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb68-9"><a href="#cb68-9" aria-hidden="true"></a>            <span class="bu">std::</span>get&lt;<span class="dv">1</span>&gt;(tup).ignore_ready_future();</span>
+<span id="cb68-10"><a href="#cb68-10" aria-hidden="true"></a>    });</span>
+<span id="cb68-11"><a href="#cb68-11" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Both futures are <code>available()</code> (resolved), but the second has <code>failed()</code> (resulted in an exception instead of a value). Note how we called <code>ignore_ready_future()</code> on this failed future, because silently ignoring a failed future is considered a bug, and will result in an &#8220;Exceptional future ignored&#8221; error message. More typically, an application will log the failed future instead of ignoring it.</p>
+<p>The above example demonstrate that <code>when_all()</code> is inconvenient and verbose to use properly. The results are wrapped in a tuple, leading to verbose tuple syntax, and uses ready futures which must all be inspected individually for an exception to avoid error messages.</p>
+<p>So Seastar also provides an easier to use <code>when_all_succeed()</code> function. This function too returns a future which resolves when all the given futures have resolved. If all of them succeeded, it passes a tuple of the resulting values to continuation, without wrapping each of them in a future first. Sometimes, it could be tedious to unpack the tuple for consuming the resulting values. In that case, <code>then_unpack()</code> can be used in place of <code>then()</code>. <code>then_unpack()</code> unpacks the returned tuple and passes its elements to the following continuation as its parameters. If, however, one or more of the futures failed, <code>when_all_succeed()</code> resolves to a failed future, containing the exception from one of the failed futures. If more than one of the given future failed, one of those will be passed on (it is unspecified which one is chosen), and the rest will be silently ignored. For example,</p>
+<div class="sourceCode" id="cb69"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> seastar;</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true"></a>future&lt;&gt; f() {</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true"></a>    <span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;</span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true"></a>    <span class="cf">return</span> when_all_succeed(sleep(<span class="dv">1</span><span class="bu">s</span>), make_ready_future&lt;<span class="dt">int</span>&gt;(<span class="dv">2</span>),</span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true"></a>                    make_ready_future&lt;<span class="dt">double</span>&gt;(<span class="fl">3.5</span>)</span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true"></a>            ).then_unpack([] (<span class="dt">int</span> i, <span class="dt">double</span> d) {</span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="st">" "</span> &lt;&lt; d &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb69-8"><a href="#cb69-8" aria-hidden="true"></a>    });</span>
+<span id="cb69-9"><a href="#cb69-9" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Note how the integer and double values held by the futures are conveniently passed, individually to the continuation. Since <code>sleep()</code> does not contain a value, it is waited for, but no third value is passed to the continuation. That also means that if we <code>when_all_succeed()</code> on several <code>future&lt;&gt;</code> (without a value), the result is a <code>future&lt;tuple&lt;&gt;&gt;</code>:</p>
+<div class="sourceCode" id="cb70"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> seastar;</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true"></a>future&lt;&gt; f() {</span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true"></a>    <span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;</span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true"></a>    <span class="cf">return</span> when_all_succeed(sleep(<span class="dv">1</span><span class="bu">s</span>), sleep(<span class="dv">2</span><span class="bu">s</span>), sleep(<span class="dv">3</span><span class="bu">s</span>)).then_unpack([] {</span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true"></a>        <span class="cf">return</span> make_ready_future&lt;&gt;();</span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true"></a>    });</span>
+<span id="cb70-7"><a href="#cb70-7" aria-hidden="true"></a>}</span></code></pre></div>
+<p>This example simply waits for 3 seconds (the maximum of 1, 2 and 3 seconds).</p>
+<p>An example of <code>when_all_succeed()</code> with an exception:</p>
+<div class="sourceCode" id="cb71"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true"></a><span class="kw">using</span> <span class="kw">namespace</span> seastar;</span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true"></a>future&lt;&gt; f() {</span>
+<span id="cb71-3"><a href="#cb71-3" aria-hidden="true"></a>    <span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;</span>
+<span id="cb71-4"><a href="#cb71-4" aria-hidden="true"></a>    <span class="cf">return</span> when_all_succeed(make_ready_future&lt;<span class="dt">int</span>&gt;(<span class="dv">2</span>),</span>
+<span id="cb71-5"><a href="#cb71-5" aria-hidden="true"></a>                    make_exception_future&lt;<span class="dt">double</span>&gt;(<span class="st">"oops"</span>)</span>
+<span id="cb71-6"><a href="#cb71-6" aria-hidden="true"></a>            ).then_unpack([] (<span class="dt">int</span> i, <span class="dt">double</span> d) {</span>
+<span id="cb71-7"><a href="#cb71-7" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; i &lt;&lt; <span class="st">" "</span> &lt;&lt; d &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb71-8"><a href="#cb71-8" aria-hidden="true"></a>    }).handle_exception([] (<span class="bu">std::</span>exception_ptr e) {</span>
+<span id="cb71-9"><a href="#cb71-9" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">"exception: "</span> &lt;&lt; e &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb71-10"><a href="#cb71-10" aria-hidden="true"></a>    });</span>
+<span id="cb71-11"><a href="#cb71-11" aria-hidden="true"></a>}</span></code></pre></div>
+<p>In this example, one of the futures fails, so the result of <code>when_all_succeed</code> is a failed future, so the normal continuation is not run, and the <code>handle_exception()</code> continuation is done.</p>
+<p>TODO: also explain <code>when_all</code> and <code>when_all_succeed</code> for vectors.</p>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="11.html">11 Loops</a>. Next: <a href="13.html">13 Semaphores</a>.</div></body></html>

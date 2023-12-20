@@ -1,0 +1,234 @@
+<html lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Nadav Har&#8217;El - nyh@ScyllaDB.com">
+  <meta name="author" content="Avi Kivity - avi@ScyllaDB.com">
+  <title>Asynchronous Programming with Seastar</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #c4a000; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #000000; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #000000; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #000000; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">
+
+body {
+color: #000000;
+background: #FFFFFF;
+font-size: 13pt;
+line-height: 1.10;
+font-family: arial, sans-serif; margin-left: 15pt;
+margin-right: 15pt;
+text-align: justify;
+}
+
+div#header, header {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F0F0C0;	margin: 10pt;
+margin-left: 10%;
+margin-right: 10%;
+}
+
+.title {
+color: #000000;
+margin: 5pt;
+text-align: center;
+font-family: serif;
+font-weight: bold;
+font-size: 32pt;
+}
+
+.author, .date {
+color: #000000;
+margin: 0pt;
+text-align: center;
+font-family: serif;
+font-weight: normal;
+font-size: 16pt;
+}
+
+div#TOC, nav#TOC {
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #aaa;
+background: #F9F9F9;
+margin: 10pt;
+margin-left: 20%;
+margin-right: 20%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #EE3300;
+}
+a {
+text-decoration: none;
+}
+a:link, a:visited {
+color: #0000CC;	}
+a:hover {
+color: #CC0000;
+text-decoration: underline;
+}
+
+code {
+background-color: #FFFFFF;
+
+
+
+white-space: pre-wrap; 
+white-space: -moz-pre-wrap !important; 
+white-space: -pre-wrap; 
+white-space: -o-pre-wrap; 
+word-wrap: break-word; 
+
+}
+pre {
+padding: 0.5em;
+border: 1px dotted #777;
+margin-left: 15pt;
+margin-right: 15pt;
+}
+pre, pre > code {
+background-color: #f8f8f8;
+}
+
+@media print {
+body { font-size: 11pt; }
+a { color: black; background: transparent; }
+pre { border: 1px solid #aaa; }
+}
+</style>
+</head>
+<body><header id="title-block-header">
+<h1 class="title">Asynchronous Programming with Seastar</h1>
+<p class="author">Nadav Har&#8217;El - nyh@ScyllaDB.com</p>
+<p class="author">Avi Kivity - avi@ScyllaDB.com</p>
+</header>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="5.html">5 Coroutines</a>. Next: <a href="7.html">7 Handling exceptions</a>.</div><h1 data-number="6" id="continuations"><span class="header-section-number">6</span> Continuations</h1>
+<h2 data-number="6.1" id="capturing-state-in-continuations"><span class="header-section-number">6.1</span> Capturing state in continuations</h2>
+<p>We&#8217;ve already seen that Seastar <em>continuations</em> are lambdas, passed to the <code>then()</code> method of a future. In the examples we&#8217;ve seen so far, lambdas have been nothing more than anonymous functions. But C++11 lambdas have one more trick up their sleeve, which is extremely important for future-based asynchronous programming in Seastar: Lambdas can <strong>capture</strong> state. Consider the following example:</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;seastar/core/sleep.hh&gt;</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true"></a><span class="pp">#include </span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true"></a></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; incr(<span class="dt">int</span> i) {</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true"></a>    <span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true"></a>    <span class="cf">return</span> seastar::sleep(<span class="dv">10</span><span class="bu">ms</span>).then([i] { <span class="cf">return</span> i + <span class="dv">1</span>; });</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true"></a>}</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true"></a></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true"></a>seastar::future&lt;&gt; f() {</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true"></a>    <span class="cf">return</span> incr(<span class="dv">3</span>).then([] (<span class="dt">int</span> val) {</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true"></a>        <span class="bu">std::</span>cout &lt;&lt; <span class="st">"Got "</span> &lt;&lt; val &lt;&lt; <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>;</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true"></a>    });</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The future operation <code>incr(i)</code> takes some time to complete (it needs to sleep a bit first&#8230;), and in that duration, it needs to save the <code>i</code> value it is working on. In the early event-driven programming models, the programmer needed to explicitly define an object for holding this state, and to manage all these objects. Everything is much simpler in Seastar, with C++11&#8217;s lambdas: The <em>capture syntax</em> &#8220;<code>[i]</code>&#8221; in the above example means that the value of i, as it existed when incr() was called() is captured into the lambda. The lambda is not just a function - it is in fact an <em>object</em>, with both code and data. In essence, the compiler created for us automatically the state object, and we neither need to define it, nor to keep track of it (it gets saved together with the continuation, when the continuation is deferred, and gets deleted automatically after the continuation runs).</p>
+<p>One implementation detail worth understanding is that when a continuation has captured state and is run immediately, this capture incurs no runtime overhead. However, when the continuation cannot be run immediately (because the future is not yet ready) and needs to be saved till later, memory needs to be allocated on the heap for this data, and the continuation&#8217;s captured data needs to be copied there. This has runtime overhead, but it is unavoidable, and is very small compared to the related overhead in the threaded programming model (in a threaded program, this sort of state usually resides on the stack of the blocked thread, but the stack is much larger than our tiny capture state, takes up a lot of memory and causes a lot of cache pollution on context switches between those threads).</p>
+<p>In the above example, we captured <code>i</code> <em>by value</em> - i.e., a copy of the value of <code>i</code> was saved into the continuation. C++ has two additional capture options: capturing by <em>reference</em> and capturing by <em>move</em>:</p>
+<p>Using capture-by-reference in a continuation is usually a mistake, and can lead to serious bugs. For example, if in the above example we captured a reference to i, instead of copying it,</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; incr(<span class="dt">int</span> i) {</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true"></a>    <span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true"></a>    <span class="co">// Oops, the "&amp;" below is wrong:</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true"></a>    <span class="cf">return</span> seastar::sleep(<span class="dv">10</span><span class="bu">ms</span>).then([&amp;i] { <span class="cf">return</span> i + <span class="dv">1</span>; });</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true"></a>}</span></code></pre></div>
+<p>this would have meant that the continuation would contain the address of <code>i</code>, not its value. But <code>i</code> is a stack variable, and the incr() function returns immediately, so when the continuation eventually gets to run, long after incr() returns, this address will contain unrelated content.</p>
+<p>An exception to the capture-by-reference-is-usually-a-mistake rule is the <code>do_with()</code> idiom, which we will introduce later. This idiom ensures that an object lives throughout the life of the continuation, and makes capture-by-reference possible, and very convenient.</p>
+<p>Using capture-by-<em>move</em> in continuations is also very useful in Seastar applications. By <strong>moving</strong> an object into a continuation, we transfer ownership of this object to the continuation, and make it easy for the object to be automatically deleted when the continuation ends. For example, consider a traditional function taking a <code>std::unique_ptr&lt;T&gt;</code>.</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true"></a><span class="dt">int</span> do_something(<span class="bu">std::</span>unique_ptr&lt;T&gt; obj) {</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true"></a>     <span class="co">// do some computation based on the contents of obj, let's say the result is 17</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true"></a>     <span class="cf">return</span> <span class="dv">17</span>;</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true"></a>     <span class="co">// at this point, obj goes out of scope so the compiler delete()s it.  </span></span></code></pre></div>
+<p>By using unique_ptr in this way, the caller passes an object to the function, but tells it the object is now its exclusive responsibility - and when the function is done with the object, it automatically deletes it. How do we use unique_ptr in a continuation? The following won&#8217;t work:</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; slow_do_something(<span class="bu">std::</span>unique_ptr&lt;T&gt; obj) {</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true"></a>    <span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true"></a>    <span class="co">// The following line won't compile...</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true"></a>    <span class="cf">return</span> seastar::sleep(<span class="dv">10</span><span class="bu">ms</span>).then([obj] () <span class="at">mutable</span> { <span class="cf">return</span> do_something(<span class="bu">std::</span>move(obj)); });</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true"></a>}</span></code></pre></div>
+<p>The problem is that a unique_ptr cannot be passed into a continuation by value, as this would require copying it, which is forbidden because it violates the guarantee that only one copy of this pointer exists. We can, however, <em>move</em> obj into the continuation:</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true"></a>seastar::future&lt;<span class="dt">int</span>&gt; slow_do_something(<span class="bu">std::</span>unique_ptr&lt;T&gt; obj) {</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true"></a>    <span class="kw">using</span> <span class="kw">namespace</span> <span class="bu">std::</span>chrono_literals;</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true"></a>    <span class="cf">return</span> seastar::sleep(<span class="dv">10</span><span class="bu">ms</span>).then([obj = <span class="bu">std::</span>move(obj)] () <span class="at">mutable</span> {</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true"></a>        <span class="cf">return</span> do_something(<span class="bu">std::</span>move(obj));</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true"></a>    });</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true"></a>}</span></code></pre></div>
+<p>Here the use of <code>std::move()</code> causes obj&#8217;s move-assignment is used to move the object from the outer function into the continuation. The notion of move (<em>move semantics</em>), introduced in C++11, is similar to a shallow copy followed by invalidating the source copy (so that the two copies do not co-exist, as forbidden by unique_ptr). After moving obj into the continuation, the top-level function can no longer use it (in this case it&#8217;s of course ok, because we return anyway).</p>
+<p>The <code>[obj = ...]</code> capture syntax we used here is new to C++14. This is the main reason why Seastar requires C++14, and does not support older C++11 compilers.</p>
+<p>The extra <code>() mutable</code> syntax was needed here because by default when C++ captures a value (in this case, the value of std::move(obj)) into a lambda, it makes this value read-only, so our lambda cannot, in this example, move it again. Adding <code>mutable</code> removes this artificial restriction.</p>
+<h2 data-number="6.2" id="evaluation-order-considerations-c14-only"><span class="header-section-number">6.2</span> Evaluation order considerations (C++14 only)</h2>
+<p>C++14 (and below) does <em>not</em> guarantee that lambda captures in continuations will be evaluated after the futures they relate to are evaluated (See https://en.cppreference.com/w/cpp/language/eval_order).</p>
+<p>Consequently, avoid the programming pattern below:</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true"></a>    <span class="cf">return</span> do_something(obj).then([obj = <span class="bu">std::</span>move(obj)] () <span class="at">mutable</span> {</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true"></a>        <span class="cf">return</span> do_something_else(<span class="bu">std::</span>move(obj));</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true"></a>    });</span></code></pre></div>
+<p>In the example above, <code>[obj = std::move(obj)]</code> might be evaluated before <code>do_something(obj)</code> is called, potentially leading to use-after-move of <code>obj</code>.</p>
+<p>To guarantee the desired evaluation order, the expression above may be broken into separate statements as follows:</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true"></a>    <span class="kw">auto</span> fut = do_something(obj);</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true"></a>    <span class="cf">return</span> fut.then([obj = <span class="bu">std::</span>move(obj)] () <span class="at">mutable</span> {</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true"></a>        <span class="cf">return</span> do_something_else(<span class="bu">std::</span>move(obj));</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true"></a>    });</span></code></pre></div>
+<p>This was changed in C++17. The expression that creates the object the function <code>then</code> is called on (the future) is evaluated before all the arguments to the function, so this style is not required in C++17 and above.</p>
+<h2 data-number="6.3" id="chaining-continuations"><span class="header-section-number">6.3</span> Chaining continuations</h2>
+<p>TODO: We already saw chaining example in slow() above. talk about the return from then, and returning a future and chaining more thens.</p>
+<div><a href="index.html">Back to table of contents</a>. Previous: <a href="5.html">5 Coroutines</a>. Next: <a href="7.html">7 Handling exceptions</a>.</div></body></html>
